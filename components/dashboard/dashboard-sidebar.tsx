@@ -29,12 +29,10 @@ export function DashboardSidebar(props: {
   };
 
   return (
-    <div className="w-80 flex-shrink-0 border-r bg-sidebar p-4">
+    <div className="w-1/3 flex-shrink-0 border-r bg-sidebar p-4">
       <div className="flex h-full flex-col">
         {/* Content based on current step */}
-        <div className="flex-1">
-          {renderSidebarContent(props.currentStep)}
-        </div>
+        <div className="flex-1">{renderSidebarContent(props.currentStep)}</div>
 
         {/* Navigation buttons at the bottom */}
         <div className="mt-6 flex justify-between gap-2">
