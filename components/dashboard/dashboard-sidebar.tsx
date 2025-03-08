@@ -14,6 +14,7 @@ import {
 import { defaultTimeTableData, saveTimeTableData } from "@/lib/timetable";
 import { Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { FileItSidebar } from "../file-it/file-it-panel";
 
 export function DashboardSidebar(props: {
   currentStep: Step;
@@ -122,10 +123,7 @@ function renderSidebarContent(step: Step) {
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">File It</h2>
-          <p className="text-sm text-sidebar-foreground/80">
-            Organize your courses and assignments.
-          </p>
-          {/* File organization controls would go here */}
+          <FileItSidebar />
         </div>
       );
 

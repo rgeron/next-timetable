@@ -170,6 +170,7 @@ function ScheduleCell({
       <div
         className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
         style={{ height: `${height}px` }}
+        data-schedule-id={entry?.id || ""}
       >
         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
           -
@@ -185,6 +186,7 @@ function ScheduleCell({
       <div
         className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
         style={{ height: `${height}px` }}
+        data-schedule-id={entry.id}
       >
         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
           Erreur
@@ -203,6 +205,7 @@ function ScheduleCell({
           borderLeft: `4px solid ${entity.color}`,
           height: `${height}px`,
         }}
+        data-schedule-id={entry.id}
       >
         <div className="w-full h-full grid grid-rows-2 gap-1">
           {/* First entity */}
@@ -247,6 +250,7 @@ function ScheduleCell({
         borderLeft: `4px solid ${entity.color}`,
         height: `${height}px`,
       }}
+      data-schedule-id={entry.id}
     >
       <div
         className="w-full h-full p-1 rounded-md flex flex-col"
