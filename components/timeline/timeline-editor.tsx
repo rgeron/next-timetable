@@ -176,9 +176,7 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
             slot={slot}
             onChange={handleTimeSlotChange}
             isFirst={index === 0}
-            isLast={index === timeSlots.length - 1}
             compact={compact}
-            prevEndTime={index > 0 ? timeSlots[index - 1].end : undefined}
           />
         ))}
 
@@ -195,19 +193,8 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
             title="Fin de journée"
           />
 
-          {/* Last slot number */}
-          <div
-            className={`ml-12 ${
-              compact ? "w-5 h-5 text-[10px]" : "w-6 h-6 text-xs"
-            } rounded-full bg-muted-foreground/10 flex items-center justify-center font-medium ${
-              compact ? "hidden sm:flex" : ""
-            }`}
-          >
-            {timeSlots.length + 1}
-          </div>
-
           {/* End time input */}
-          <div className={`${compact ? "ml-2 sm:ml-4" : "ml-4"} flex-1`}>
+          <div className={`ml-12 flex-1`}>
             <Input
               id={`end-${timeSlots.length}`}
               value={

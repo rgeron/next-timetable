@@ -7,7 +7,6 @@ type TimelineSlotProps = {
   slot: TimeSlot;
   onChange: (id: number, field: "start" | "end", value: string) => void;
   isFirst: boolean;
-  isLast: boolean;
   compact?: boolean;
 };
 
@@ -15,7 +14,6 @@ export function TimelineSlot({
   slot,
   onChange,
   isFirst,
-  isLast,
   compact = false,
 }: TimelineSlotProps) {
   return (
@@ -34,19 +32,8 @@ export function TimelineSlot({
         } rounded-full bg-primary transform -translate-x-1.5`}
       />
 
-      {/* Slot number (shows slot that starts at this point) */}
-      <div
-        className={`ml-12 ${
-          compact ? "w-5 h-5 text-[10px]" : "w-6 h-6 text-xs"
-        } rounded-full bg-muted-foreground/10 flex items-center justify-center font-medium ${
-          compact ? "hidden sm:flex" : ""
-        }`}
-      >
-        {slot.id}
-      </div>
-
       {/* Time input for this point */}
-      <div className={`${compact ? "ml-2 sm:ml-4" : "ml-4"} flex-1`}>
+      <div className={`ml-12 flex-1`}>
         <Input
           id={`time-point-${slot.id}`}
           value={slot.start}

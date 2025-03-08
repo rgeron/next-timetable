@@ -9,6 +9,24 @@ import {
 } from "@/lib/timetable";
 import React, { useEffect, useState } from "react";
 
+// Function to calculate minutes from time string (e.g. "8h30" -> 510 minutes)
+function timeToMinutes(timeStr: string): number {
+  const [hours, minutes] = timeStr.split("h");
+  return parseInt(hours) * 60 + (minutes ? parseInt(minutes) : 0);
+}
+
+// Function to calculate slot height based on duration
+function calculateSlotHeight(start: string, end: string): number {
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+
+  // Calculate duration in minutes
+  const durationMinutes = endMinutes - startMinutes;
+
+  // Base height is 20px per 15 minutes (adjust as needed)
+  return Math.max(durationMinutes * (20 / 15), 40); // Minimum height of 40px
+}
+
 export function Timetable() {
   const [timetableData, setTimetableData] = useState<TimeTableData | null>(
     null
@@ -95,32 +113,43 @@ export function Timetable() {
           ))}
 
           {/* Time Slots Rows */}
-          {timetableData.timeSlots.map((timeSlot) => (
-            <React.Fragment key={timeSlot.id}>
-              {/* Time Column */}
-              <div className="p-2 border-b flex flex-col items-center justify-center text-sm">
-                <span>{timeSlot.start}</span>
-                <span className="text-muted-foreground">-</span>
-                <span>{timeSlot.end}</span>
-              </div>
+          {timetableData.timeSlots.map((timeSlot) => {
+            const slotHeight = calculateSlotHeight(
+              timeSlot.start,
+              timeSlot.end
+            );
 
-              {/* Schedule Cells for Each Day */}
-              {timetableData.days.map((day) => {
-                const entry = getScheduleEntry(
-                  timetableData,
-                  day.id,
-                  timeSlot.id
-                );
-                return (
-                  <ScheduleCell
-                    key={`${day.id}-${timeSlot.id}`}
-                    entry={entry}
-                    timetableData={timetableData}
-                  />
-                );
-              })}
-            </React.Fragment>
-          ))}
+            return (
+              <React.Fragment key={timeSlot.id}>
+                {/* Time Column */}
+                <div
+                  className="p-2 border-b flex flex-col items-center justify-center text-sm"
+                  style={{ height: `${slotHeight}px` }}
+                >
+                  <span>{timeSlot.start}</span>
+                  <span className="text-muted-foreground">-</span>
+                  <span>{timeSlot.end}</span>
+                </div>
+
+                {/* Schedule Cells for Each Day */}
+                {timetableData.days.map((day) => {
+                  const entry = getScheduleEntry(
+                    timetableData,
+                    day.id,
+                    timeSlot.id
+                  );
+                  return (
+                    <ScheduleCell
+                      key={`${day.id}-${timeSlot.id}`}
+                      entry={entry}
+                      timetableData={timetableData}
+                      height={slotHeight}
+                    />
+                  );
+                })}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -130,13 +159,18 @@ export function Timetable() {
 function ScheduleCell({
   entry,
   timetableData,
+  height,
 }: {
   entry?: ScheduleEntry | null;
   timetableData: TimeTableData;
+  height: number;
 }) {
   if (!entry || !entry.entityId) {
     return (
-      <div className="p-2 border-b border-l h-[100px] hover:bg-muted/40 transition-colors">
+      <div
+        className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+        style={{ height: `${height}px` }}
+      >
         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
           -
         </div>
@@ -148,7 +182,10 @@ function ScheduleCell({
 
   if (!entity) {
     return (
-      <div className="p-2 border-b border-l h-[100px] hover:bg-muted/40 transition-colors">
+      <div
+        className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+        style={{ height: `${height}px` }}
+      >
         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
           Erreur
         </div>
@@ -161,8 +198,11 @@ function ScheduleCell({
 
     return (
       <div
-        className="p-2 border-b border-l h-[100px] hover:bg-muted/40 transition-colors"
-        style={{ borderLeft: `4px solid ${entity.color}` }}
+        className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+        style={{
+          borderLeft: `4px solid ${entity.color}`,
+          height: `${height}px`,
+        }}
       >
         <div className="w-full h-full grid grid-rows-2 gap-1">
           {/* First entity */}
@@ -202,8 +242,11 @@ function ScheduleCell({
 
   return (
     <div
-      className="p-2 border-b border-l h-[100px] hover:bg-muted/40 transition-colors"
-      style={{ borderLeft: `4px solid ${entity.color}` }}
+      className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+      style={{
+        borderLeft: `4px solid ${entity.color}`,
+        height: `${height}px`,
+      }}
     >
       <div
         className="w-full h-full p-1 rounded-md flex flex-col"
