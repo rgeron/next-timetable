@@ -31,18 +31,24 @@ export function DashboardSidebar(props: {
   return (
     <div className="w-80 flex-shrink-0 border-r bg-sidebar p-4">
       <div className="flex h-full flex-col">
-        {/* Navigation buttons at the top */}
-        <div className="mb-6 space-y-2">
-          {!isFirstStep(props.currentStep) && (
-            <GoBackButton onClick={handleGoBack} />
-          )}
-          {!isLastStep(props.currentStep) && (
-            <ContinueButton onClick={handleContinue} />
-          )}
+        {/* Content based on current step */}
+        <div className="flex-1">
+          {renderSidebarContent(props.currentStep)}
         </div>
 
-        {/* Content based on current step */}
-        <div className="flex-1">{renderSidebarContent(props.currentStep)}</div>
+        {/* Navigation buttons at the bottom */}
+        <div className="mt-6 flex justify-between gap-2">
+          <div className="flex-1">
+            {!isFirstStep(props.currentStep) && (
+              <GoBackButton onClick={handleGoBack} />
+            )}
+          </div>
+          <div className="flex-1">
+            {!isLastStep(props.currentStep) && (
+              <ContinueButton onClick={handleContinue} />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
