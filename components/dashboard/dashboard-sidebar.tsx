@@ -2,6 +2,7 @@
 
 import { ContinueButton } from "@/components/navigation/continue-button";
 import { GoBackButton } from "@/components/navigation/go-back-button";
+import { TimelineEditor } from "@/components/timeline/timeline-editor";
 import {
   getNextStep,
   getPreviousStep,
@@ -9,6 +10,7 @@ import {
   isLastStep,
   Step,
 } from "@/lib/step-navigation";
+import { Clock } from "lucide-react";
 
 export function DashboardSidebar(props: {
   currentStep: Step;
@@ -29,13 +31,15 @@ export function DashboardSidebar(props: {
   };
 
   return (
-    <div className="w-1/3 flex-shrink-0 border-r bg-sidebar p-4">
+    <div className="w-1/3 flex-shrink-0 border-r bg-sidebar flex flex-col h-full">
       <div className="flex h-full flex-col">
-        {/* Content based on current step */}
-        <div className="flex-1">{renderSidebarContent(props.currentStep)}</div>
+        {/* Content based on current step - now scrollable */}
+        <div className="flex-1 overflow-y-auto p-4 pr-2 custom-scrollbar">
+          {renderSidebarContent(props.currentStep)}
+        </div>
 
-        {/* Navigation buttons at the bottom */}
-        <div className="mt-6 flex justify-between gap-2">
+        {/* Navigation buttons at the bottom - fixed position */}
+        <div className="border-t p-4 flex justify-between gap-2 bg-sidebar">
           <div className="flex-1">
             {!isFirstStep(props.currentStep) && (
               <GoBackButton onClick={handleGoBack} />
@@ -80,11 +84,18 @@ function renderSidebarContent(step: Step) {
     case "timeline":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Timeline</h2>
-          <p className="text-sm text-sidebar-foreground/80">
-            Configure the timeline settings for your timetable.
+          <h2 className="text-xl font-semibold">Horaires</h2>
+          <p className="text-sm text-sidebar-foreground/80 mb-4">
+            Ajustez les horaires de début et de fin pour chaque créneau de votre
+            emploi du temps.
           </p>
-          {/* Timeline configuration would go here */}
+
+          <div className="flex items-center text-sm font-medium mb-2">
+            <Clock className="w-4 h-4 mr-2" />
+            <span>Ajustement des créneaux</span>
+          </div>
+
+          <TimelineEditor compact={true} />
         </div>
       );
 

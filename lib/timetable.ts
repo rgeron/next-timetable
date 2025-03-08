@@ -1,3 +1,6 @@
+// Import the browser utilities
+import { safeLocalStorage, safeSaveToLocalStorage } from "@/lib/browser-utils";
+
 // Types for timetable data
 export type TimeTableMetadata = {
   school: string;
@@ -219,34 +222,15 @@ const TIMETABLE_STORAGE_KEY = "timetable-data";
 
 // Function to get timetable data from localStorage
 export function getTimeTableData(): TimeTableData {
-  if (typeof window === "undefined") {
-    return defaultTimeTableData;
-  }
-
-  try {
-    const storedData = localStorage.getItem(TIMETABLE_STORAGE_KEY);
-    if (!storedData) {
-      return defaultTimeTableData;
-    }
-
-    return JSON.parse(storedData) as TimeTableData;
-  } catch (error) {
-    console.error("Error loading timetable data:", error);
-    return defaultTimeTableData;
-  }
+  return safeLocalStorage<TimeTableData>(
+    TIMETABLE_STORAGE_KEY,
+    defaultTimeTableData
+  );
 }
 
 // Function to save timetable data to localStorage
 export function saveTimeTableData(data: TimeTableData): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error("Error saving timetable data:", error);
-  }
+  safeSaveToLocalStorage(TIMETABLE_STORAGE_KEY, data);
 }
 
 // Helper function to get entity (subject or activity) by ID
@@ -272,27 +256,27 @@ export function getScheduleEntry(
 
 // Function to update a schedule entry
 export function updateScheduleEntry(
-  data: TimeTableData, 
-  dayId: number, 
-  timeSlotId: number, 
+  data: TimeTableData,
+  dayId: number,
+  timeSlotId: number,
   updates: Partial<ScheduleEntry>
 ): TimeTableData {
   const newData = structuredClone(data);
   const entryIndex = newData.schedule.findIndex(
-    entry => entry.dayId === dayId && entry.timeSlotId === timeSlotId
+    (entry) => entry.dayId === dayId && entry.timeSlotId === timeSlotId
   );
-  
+
   if (entryIndex === -1) {
     return data;
   }
-  
+
   newData.schedule[entryIndex] = {
     ...newData.schedule[entryIndex],
-    ...updates
+    ...updates,
   };
-  
+
   // Save changes to localStorage
   saveTimeTableData(newData);
-  
+
   return newData;
 }

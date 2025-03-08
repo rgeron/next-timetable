@@ -20,6 +20,36 @@ export function Timetable() {
     const data = getTimeTableData();
     setTimetableData(data);
     setIsLoading(false);
+
+    // Listen for storage events to update the timetable when data changes
+    const handleStorageChange = () => {
+      const updatedData = getTimeTableData();
+      setTimetableData(updatedData);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Listen for custom event from TimelineEditor
+    const handleCustomEvent = () => {
+      const updatedData = getTimeTableData();
+      setTimetableData(updatedData);
+    };
+
+    window.addEventListener("timetableDataChanged", handleCustomEvent);
+
+    // Refresh data every 2 seconds to catch any localStorage changes
+    // This is needed because the storage event doesn't trigger in the same window
+    // that made the change
+    const intervalId = setInterval(() => {
+      const updatedData = getTimeTableData();
+      setTimetableData(updatedData);
+    }, 2000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("timetableDataChanged", handleCustomEvent);
+      clearInterval(intervalId);
+    };
   }, []);
 
   if (isLoading || !timetableData) {
