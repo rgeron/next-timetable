@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   TimeSlot,
   TimeTableData,
@@ -148,9 +149,9 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
       {/* Description (only shown in standalone mode) */}
       {!compact && (
         <p className="text-sm text-muted-foreground">
-          Définissez l&apos;heure de fin de chaque créneau. L&apos;heure de fin
-          d&apos;un créneau devient automatiquement l&apos;heure de début du
-          créneau suivant.
+          Chaque point sur la ligne représente le début ou la fin d&apos;un
+          créneau. Ajustez les horaires en modifiant la valeur à côté de chaque
+          point.
         </p>
       )}
 
@@ -164,7 +165,7 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
         {/* First show a note about time format */}
         {compact && (
           <div className="pl-12 text-xs text-muted-foreground mb-2">
-            Format: 8h ou 8h30 (heure + &apos;h&apos; + minutes)
+            Format: 8h ou 8h30
           </div>
         )}
 
@@ -180,6 +181,56 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
             prevEndTime={index > 0 ? timeSlots[index - 1].end : undefined}
           />
         ))}
+
+        {/* Last point (end of last slot) */}
+        <div
+          className={`relative flex items-center ${compact ? "mb-2 py-1" : ""}`}
+          title="Fin de journée"
+        >
+          {/* Timeline dot */}
+          <div
+            className={`absolute left-6 ${
+              compact ? "w-2.5 h-2.5" : "w-3 h-3"
+            } rounded-full bg-primary transform -translate-x-1.5`}
+            title="Fin de journée"
+          />
+
+          {/* Last slot number */}
+          <div
+            className={`ml-12 ${
+              compact ? "w-5 h-5 text-[10px]" : "w-6 h-6 text-xs"
+            } rounded-full bg-muted-foreground/10 flex items-center justify-center font-medium ${
+              compact ? "hidden sm:flex" : ""
+            }`}
+          >
+            {timeSlots.length + 1}
+          </div>
+
+          {/* End time input */}
+          <div className={`${compact ? "ml-2 sm:ml-4" : "ml-4"} flex-1`}>
+            <Input
+              id={`end-${timeSlots.length}`}
+              value={
+                timeSlots.length > 0 ? timeSlots[timeSlots.length - 1].end : ""
+              }
+              onChange={(e) => {
+                if (timeSlots.length > 0) {
+                  handleTimeSlotChange(timeSlots.length, "end", e.target.value);
+                }
+              }}
+              className={`${compact ? "h-6 text-xs px-2 py-0" : "h-8"} w-24`}
+              placeholder="20h00"
+              title="Heure de fin de journée"
+            />
+          </div>
+
+          {/* Description (only in non-compact mode) */}
+          {!compact && (
+            <div className="text-xs text-muted-foreground ml-3">
+              <span className="text-orange-500">Fin de journée</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
