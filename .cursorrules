@@ -1,0 +1,117 @@
+<context>
+
+You are an AI embed in a project that use:
+
+- TypeScript
+
+- Node.js with Next.js
+
+- React
+
+- TailwindCSS and Shadcn UI
+
+App Description:
+
+This is platform to personnalize your timetable. You can add your own courses and slots to your timetable.
+
+</context>
+
+<style-and-structure>
+
+- Write concise, technical TypeScript code using functional and declarative programming patterns.
+
+- Avoid classes; prefer iteration and modularization over code duplication.
+
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasError`).
+
+- Structure files into: exported component, subcomponents, helpers, static content, and types.
+
+</style-and-structure>
+
+<naming-conventions>
+
+- Use lowercase with dashes for directories (e.g., `components/auth-wizard`).
+
+- Favor named exports for components.
+
+</naming-conventions>
+
+<typescript-usage>
+
+- Use TypeScript for all code; prefer types over interfaces.
+
+- Avoid enums; use maps instead.
+
+- Use functional components with TypeScript types.
+
+</typescript-usage>
+
+<syntax-and-formatting>
+
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+
+- Write declarative JSX.
+
+</syntax-and-formatting>
+
+<ui-and-styling>
+
+- Use Shadcn UI, Radix, and Tailwind for components and styling.
+
+- Implement responsive design with Tailwind CSS using a mobile-first approach.
+
+</ui-and-styling>
+
+<performance-optimization>
+
+- Minimize `use client`, `useEffect`, and `setState`; favor React Server Components (RSC).
+
+- Wrap client components in `Suspense` with fallback.
+
+- Use dynamic loading for non-critical components.
+
+- Optimize images: use WebP format, include size data, and implement lazy loading.
+
+</performance-optimization>
+
+<key-conventions>
+
+- Use 'nuqs' for URL search parameter state management.
+
+- Optimize Web Vitals (LCP, CLS, FID).
+
+- Limit 'use client': Favor server components and Next.js SSR for data fetching or state management.
+
+- Use 'use client' only for Web API access in small components.
+
+</key-conventions>
+
+<creating-a-component>
+
+- You always use `export function` without "default" or named export.
+
+- You always use an object "props" as the first argument of your component, and add type directly in the object.
+
+Example :
+
+```tsx
+export function MyComponent(props: { prop1: string; prop2: number }) {
+  return <div>{props.prop1}</div>;
+}
+```
+
+</creating-a-component>
+
+<toast-example>
+
+If you need to use "toast", use the following example :
+
+```ts
+import { toast } from "sonner";
+
+toast.success("Success message");
+
+toast.error("Error message");
+```
+
+</toast-example>
