@@ -3,6 +3,7 @@
 import { ContinueButton } from "@/components/navigation/continue-button";
 import { GoBackButton } from "@/components/navigation/go-back-button";
 import { TimelineEditor } from "@/components/timeline/timeline-editor";
+import { Button } from "@/components/ui/button";
 import {
   getNextStep,
   getPreviousStep,
@@ -10,7 +11,9 @@ import {
   isLastStep,
   Step,
 } from "@/lib/step-navigation";
-import { Clock } from "lucide-react";
+import { defaultTimeTableData, saveTimeTableData } from "@/lib/timetable";
+import { Clock, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 export function DashboardSidebar(props: {
   currentStep: Step;
@@ -60,6 +63,13 @@ function renderSidebarContent(step: Step) {
   // Render different content based on the current step
   switch (step) {
     case "welcome":
+      const handleStartFresh = () => {
+        saveTimeTableData(defaultTimeTableData);
+        toast.success("Timetable reset to default settings");
+        // Trigger a custom event to notify of timetable data change
+        window.dispatchEvent(new Event("timetableDataChanged"));
+      };
+
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Welcome</h2>
@@ -67,6 +77,15 @@ function renderSidebarContent(step: Step) {
             Get started with personalizing your timetable. Follow the steps to
             create your perfect schedule.
           </p>
+
+          <Button
+            variant="outline"
+            onClick={handleStartFresh}
+            className="w-full mt-4"
+          >
+            <RefreshCw className="size-4 mr-2" />
+            Start Fresh
+          </Button>
         </div>
       );
 
