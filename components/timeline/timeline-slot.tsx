@@ -10,6 +10,7 @@ type TimelineSlotProps = {
   isFirst: boolean;
   isLast: boolean;
   compact?: boolean;
+  prevEndTime?: string;
 };
 
 export function TimelineSlot({
@@ -18,6 +19,7 @@ export function TimelineSlot({
   isFirst,
   isLast,
   compact = false,
+  prevEndTime,
 }: TimelineSlotProps) {
   return (
     <div
@@ -39,29 +41,50 @@ export function TimelineSlot({
         {slot.id}
       </div>
 
-      {/* Times editors */}
+      {/* Times editor */}
       <div
         className={`${compact ? "ml-2 sm:ml-4" : "ml-4"} grid ${
-          compact ? "grid-cols-2 gap-2" : "grid-cols-2 md:grid-cols-4 gap-3"
+          compact ? "grid-cols-1 gap-2" : "grid-cols-1 md:grid-cols-3 gap-3"
         } flex-1 items-center`}
       >
-        <div className="space-y-1">
-          <Label
-            htmlFor={`start-${slot.id}`}
-            className={`${
-              compact ? "text-[10px] hidden sm:inline-block" : "text-xs"
-            }`}
-          >
-            Début
-          </Label>
-          <Input
-            id={`start-${slot.id}`}
-            value={slot.start}
-            onChange={(e) => onChange(slot.id, "start", e.target.value)}
-            className={`${compact ? "h-6 text-xs px-2 py-0" : "h-8"}`}
-            placeholder="8h00"
-          />
-        </div>
+        {isFirst ? (
+          // For the first slot, we need to show the start time
+          <div className="space-y-1">
+            <Label
+              htmlFor={`start-${slot.id}`}
+              className={`${
+                compact ? "text-[10px] hidden sm:inline-block" : "text-xs"
+              }`}
+            >
+              Début de journée
+            </Label>
+            <Input
+              id={`start-${slot.id}`}
+              value={slot.start}
+              onChange={(e) => onChange(slot.id, "start", e.target.value)}
+              className={`${compact ? "h-6 text-xs px-2 py-0" : "h-8"}`}
+              placeholder="8h00"
+            />
+          </div>
+        ) : (
+          // For non-first slots, show their inherited start time (end time of previous slot)
+          <div className="space-y-1">
+            <Label
+              htmlFor={`start-info-${slot.id}`}
+              className={`${
+                compact ? "text-[10px] hidden sm:inline-block" : "text-xs"
+              }`}
+            >
+              Début (automatique)
+            </Label>
+            <div 
+              id={`start-info-${slot.id}`}
+              className={`${compact ? "h-6 text-xs" : "h-8"} flex items-center px-3 rounded-md border bg-muted/50 text-muted-foreground`}
+            >
+              {prevEndTime || ""}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-1">
           <Label
@@ -75,30 +98,28 @@ export function TimelineSlot({
           <Input
             id={`end-${slot.id}`}
             value={slot.end}
-            onChange={(e) => onChange(slot.id, "end", e.target.value)}
+            onChange={(e) => {
+              onChange(slot.id, "end", e.target.value);
+              // If this isn't the last slot, also update the next slot's start time
+              if (!isLast) {
+                onChange(slot.id + 1, "start", e.target.value);
+              }
+            }}
             className={`${compact ? "h-6 text-xs px-2 py-0" : "h-8"}`}
             placeholder="9h00"
           />
         </div>
 
         {!compact && (
-          <>
-            <div className="hidden md:block text-xs text-muted-foreground">
-              {isFirst ? (
-                <span className="text-green-500">Début de journée</span>
-              ) : (
-                <span>Suit: Créneau {slot.id - 1}</span>
-              )}
-            </div>
-
-            <div className="hidden md:block text-xs text-muted-foreground">
-              {isLast ? (
-                <span className="text-orange-500">Fin de journée</span>
-              ) : (
-                <span>Précède: Créneau {slot.id + 1}</span>
-              )}
-            </div>
-          </>
+          <div className="hidden md:block text-xs text-muted-foreground">
+            {isFirst ? (
+              <span className="text-green-500">Début de journée</span>
+            ) : isLast ? (
+              <span className="text-orange-500">Fin de journée</span>
+            ) : (
+              <span>Créneau {slot.id}</span>
+            )}
+          </div>
         )}
       </div>
     </div>

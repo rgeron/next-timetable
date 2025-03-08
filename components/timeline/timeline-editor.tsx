@@ -35,11 +35,28 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
     field: "start" | "end",
     value: string
   ) => {
-    setTimeSlots((currentSlots) =>
-      currentSlots.map((slot) =>
+    setTimeSlots((currentSlots) => {
+      // Create a copy of the current slots
+      const updatedSlots = currentSlots.map((slot) =>
         slot.id === id ? { ...slot, [field]: value } : slot
-      )
-    );
+      );
+
+      // If we're changing an end time and it's not the last slot,
+      // also update the start time of the next slot
+      if (field === "end" && id < updatedSlots.length) {
+        const nextSlotIndex = updatedSlots.findIndex(
+          (slot) => slot.id === id + 1
+        );
+        if (nextSlotIndex !== -1) {
+          updatedSlots[nextSlotIndex] = {
+            ...updatedSlots[nextSlotIndex],
+            start: value,
+          };
+        }
+      }
+
+      return updatedSlots;
+    });
   };
 
   const saveChanges = () => {
@@ -47,9 +64,11 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
 
     // Validate time entries
     const isValid = timeSlots.every((slot) => {
-      const startRegex = /^([0-9]|0[0-9]|1[0-9]|2[0-3])h([0-5][0-9])?$/;
-      const endRegex = /^([0-9]|0[0-9]|1[0-9]|2[0-3])h([0-5][0-9])?$/;
-      return startRegex.test(slot.start) && endRegex.test(slot.end);
+      const timeRegex = /^([0-9]|0[0-9]|1[0-9]|2[0-3])h([0-5][0-9])?$/;
+      return (
+        timeRegex.test(slot.end) &&
+        (slot.id === 1 || timeRegex.test(slot.start))
+      );
     });
 
     if (!isValid) {
@@ -59,31 +78,28 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
       return;
     }
 
-    // Check if slots are in chronological order
-    const isChronological = timeSlots.every((slot, index, array) => {
-      if (index === 0) return true;
-
-      const prevSlot = array[index - 1];
-      const prevHour = parseInt(prevSlot.end.split("h")[0]);
-      const prevMin =
-        prevSlot.end.includes("h") && prevSlot.end.split("h")[1]
-          ? parseInt(prevSlot.end.split("h")[1])
-          : 0;
-
-      const currHour = parseInt(slot.start.split("h")[0]);
-      const currMin =
+    // Check if slots are in chronological order by comparing each slot's end time with its start time
+    const isChronological = timeSlots.every((slot) => {
+      const startHour = parseInt(slot.start.split("h")[0]);
+      const startMin =
         slot.start.includes("h") && slot.start.split("h")[1]
           ? parseInt(slot.start.split("h")[1])
           : 0;
 
-      const prevTime = prevHour * 60 + prevMin;
-      const currTime = currHour * 60 + currMin;
+      const endHour = parseInt(slot.end.split("h")[0]);
+      const endMin =
+        slot.end.includes("h") && slot.end.split("h")[1]
+          ? parseInt(slot.end.split("h")[1])
+          : 0;
 
-      return currTime >= prevTime;
+      const startTime = startHour * 60 + startMin;
+      const endTime = endHour * 60 + endMin;
+
+      return endTime >= startTime;
     });
 
     if (!isChronological) {
-      toast.error("Les créneaux doivent être dans l'ordre chronologique");
+      toast.error("L'heure de fin doit être postérieure à l'heure de début");
       return;
     }
 
@@ -132,8 +148,9 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
       {/* Description (only shown in standalone mode) */}
       {!compact && (
         <p className="text-sm text-muted-foreground">
-          Ajustez les heures de début et de fin pour chaque créneau horaire.
-          Utilisez le format français (ex: 8h30).
+          Définissez l&apos;heure de fin de chaque créneau. L&apos;heure de fin
+          d&apos;un créneau devient automatiquement l&apos;heure de début du
+          créneau suivant.
         </p>
       )}
 
@@ -160,6 +177,7 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
             isFirst={index === 0}
             isLast={index === timeSlots.length - 1}
             compact={compact}
+            prevEndTime={index > 0 ? timeSlots[index - 1].end : undefined}
           />
         ))}
       </div>
