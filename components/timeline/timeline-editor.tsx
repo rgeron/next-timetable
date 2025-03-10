@@ -8,6 +8,7 @@ import {
   getTimeTableData,
   saveTimeTableData,
 } from "@/lib/timetable";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TimelineSlot } from "./timeline-slot";
@@ -60,6 +61,89 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
     });
   };
 
+  const addTimeSlot = () => {
+    if (!timeSlots.length) return;
+
+    setTimeSlots((currentSlots) => {
+      // Create a new slot with the next ID
+      const lastSlot = currentSlots[currentSlots.length - 1];
+      const newSlotId = lastSlot.id + 1;
+
+      // Default to 1 hour after the last end time
+      const lastEndTime = lastSlot.end;
+      const [hourStr, minStr] = lastEndTime.split("h");
+      let hour = parseInt(hourStr, 10);
+      const min = minStr ? parseInt(minStr, 10) : 0;
+
+      // Calculate new times (1 hour later)
+      let newStartHour = hour;
+      let newStartMin = min;
+
+      let newEndHour = hour + 1;
+      let newEndMin = min;
+
+      // Handle overflow for minutes and hours
+      if (newEndHour >= 24) {
+        newEndHour = 23;
+        newEndMin = 59;
+      }
+
+      const newStart = `${newStartHour}h${
+        newStartMin ? newStartMin.toString().padStart(2, "0") : "00"
+      }`;
+      const newEnd = `${newEndHour}h${
+        newEndMin ? newEndMin.toString().padStart(2, "0") : "00"
+      }`;
+
+      const newSlot: TimeSlot = {
+        id: newSlotId,
+        start: newStart,
+        end: newEnd,
+      };
+
+      return [...currentSlots, newSlot];
+    });
+
+    toast.success("Créneau ajouté");
+  };
+
+  const deleteTimeSlot = (id: number) => {
+    // Don't allow deleting the first slot or if there's only one
+    if (id === 1 || timeSlots.length <= 1) return;
+
+    setTimeSlots((currentSlots) => {
+      // Find the slot to delete
+      const slotIndex = currentSlots.findIndex((slot) => slot.id === id);
+      if (slotIndex === -1) return currentSlots;
+
+      // Get the previous slot to update its end time
+      const previousSlot = currentSlots[slotIndex - 1];
+      const slotToDelete = currentSlots[slotIndex];
+
+      // Create new array without the slot to delete
+      const updatedSlots = currentSlots.filter((slot) => slot.id !== id);
+
+      // Update the end time of the previous slot to match the end time of the deleted slot
+      const previousSlotIndex = updatedSlots.findIndex(
+        (slot) => slot.id === previousSlot.id
+      );
+      if (previousSlotIndex !== -1) {
+        updatedSlots[previousSlotIndex] = {
+          ...updatedSlots[previousSlotIndex],
+          end: slotToDelete.end,
+        };
+      }
+
+      // Update the IDs of all slots after the deleted one
+      return updatedSlots.map((slot, index) => ({
+        ...slot,
+        id: index + 1,
+      }));
+    });
+
+    toast.success("Créneau supprimé");
+  };
+
   const saveChanges = () => {
     if (!timetableData) return;
 
@@ -104,10 +188,40 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
       return;
     }
 
+    // Also need to update the schedule to match the new time slots
+    const updatedSchedule = timetableData.schedule.filter(
+      (entry) => entry.timeSlotId <= timeSlots.length
+    );
+
+    // Add new entries for any new time slots
+    const maxDayId = Math.max(...timetableData.days.map((day) => day.id));
+    for (let dayId = 1; dayId <= maxDayId; dayId++) {
+      for (let timeSlotId = 1; timeSlotId <= timeSlots.length; timeSlotId++) {
+        const existingEntry = updatedSchedule.find(
+          (entry) => entry.dayId === dayId && entry.timeSlotId === timeSlotId
+        );
+
+        if (!existingEntry) {
+          updatedSchedule.push({
+            id: updatedSchedule.length + 1,
+            dayId,
+            timeSlotId,
+            type: "",
+            entityId: "",
+            room: "",
+            notes: "",
+            weekType: null,
+            split: { enabled: false },
+          });
+        }
+      }
+    }
+
     // Save changes
     const updatedData = {
       ...timetableData,
       timeSlots: [...timeSlots],
+      schedule: updatedSchedule,
     };
     saveTimeTableData(updatedData);
     setTimetableData(updatedData);
@@ -175,6 +289,7 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
             key={slot.id}
             slot={slot}
             onChange={handleTimeSlotChange}
+            onDelete={deleteTimeSlot}
             isFirst={index === 0}
             compact={compact}
           />
@@ -194,7 +309,7 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
           />
 
           {/* End time input */}
-          <div className={`ml-12 flex-1`}>
+          <div className={`ml-12 flex-1 flex items-center`}>
             <Input
               id={`end-${timeSlots.length}`}
               value={
@@ -209,11 +324,24 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
               placeholder="20h00"
               title="Heure de fin de journée"
             />
+
+            {/* Add new slot button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`ml-2 ${
+                compact ? "h-5 w-5" : "h-7 w-7"
+              } text-muted-foreground hover:text-primary`}
+              onClick={addTimeSlot}
+              title="Ajouter un créneau"
+            >
+              <Plus className={compact ? "h-3 w-3" : "h-4 w-4"} />
+            </Button>
           </div>
 
           {/* Description (only in non-compact mode) */}
           {!compact && (
-            <div className="text-xs text-muted-foreground ml-3">
+            <div className="text-xs text-muted-foreground ml-3 flex items-center">
               <span className="text-orange-500">Fin de journée</span>
             </div>
           )}

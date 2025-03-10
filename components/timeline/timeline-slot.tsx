@@ -1,11 +1,14 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TimeSlot } from "@/lib/timetable";
+import { Trash2 } from "lucide-react";
 
 type TimelineSlotProps = {
   slot: TimeSlot;
   onChange: (id: number, field: "start" | "end", value: string) => void;
+  onDelete: (id: number) => void;
   isFirst: boolean;
   compact?: boolean;
 };
@@ -13,6 +16,7 @@ type TimelineSlotProps = {
 export function TimelineSlot({
   slot,
   onChange,
+  onDelete,
   isFirst,
   compact = false,
 }: TimelineSlotProps) {
@@ -33,7 +37,7 @@ export function TimelineSlot({
       />
 
       {/* Time input for this point */}
-      <div className={`ml-12 flex-1`}>
+      <div className={`ml-12 flex-1 flex items-center`}>
         <Input
           id={`time-point-${slot.id}`}
           value={slot.start}
@@ -51,6 +55,21 @@ export function TimelineSlot({
           className={`${compact ? "h-6 text-xs px-2 py-0" : "h-8"} w-24`}
           placeholder={isFirst ? "8h00" : "9h00"}
         />
+
+        {/* Delete button - don't allow deleting the first slot */}
+        {!isFirst && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`ml-2 ${
+              compact ? "h-5 w-5" : "h-7 w-7"
+            } text-muted-foreground hover:text-destructive`}
+            onClick={() => onDelete(slot.id)}
+            title="Supprimer ce créneau"
+          >
+            <Trash2 className={compact ? "h-3 w-3" : "h-4 w-4"} />
+          </Button>
+        )}
       </div>
 
       {/* Slot description (only in non-compact mode) */}
