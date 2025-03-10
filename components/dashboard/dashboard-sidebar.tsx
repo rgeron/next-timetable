@@ -15,6 +15,7 @@ import { defaultTimeTableData, saveTimeTableData } from "@/lib/timetable";
 import { Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { FileItSidebar } from "../file-it/file-it-panel";
+import { ImportFile } from "./import-file";
 
 export function DashboardSidebar(props: {
   currentStep: Step;
@@ -97,7 +98,7 @@ function renderSidebarContent(step: Step) {
           <p className="text-sm text-sidebar-foreground/80">
             Upload your existing timetable or start from scratch.
           </p>
-          {/* File import controls would go here */}
+          <ImportFile />
         </div>
       );
 
