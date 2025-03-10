@@ -1,5 +1,6 @@
 // Import the browser utilities
 import { safeLocalStorage, safeSaveToLocalStorage } from "@/lib/browser-utils";
+import { Activity, Subject } from "./common-types";
 
 // Types for timetable data
 export type TimeTableMetadata = {
@@ -17,23 +18,6 @@ export type TimeSlot = {
 export type Day = {
   id: number;
   name: string;
-};
-
-export type Subject = {
-  id: string;
-  name: string;
-  shortName: string;
-  color: string;
-  icon: string;
-  teachers: string[];
-};
-
-export type Activity = {
-  id: string;
-  name: string;
-  shortName: string;
-  color: string;
-  icon: string;
 };
 
 export type Split = {

@@ -1,6 +1,6 @@
-import { Activity, Subject } from "./timetable";
+import { Activity, ColorOption, IconOption, Subject } from "./common-types";
 
-export const AVAILABLE_COLORS = [
+export const AVAILABLE_COLORS: ColorOption[] = [
   { id: "red", value: "#ef4444", name: "Red" },
   { id: "orange", value: "#f97316", name: "Orange" },
   { id: "amber", value: "#f59e0b", name: "Amber" },
@@ -20,7 +20,7 @@ export const AVAILABLE_COLORS = [
   { id: "rose", value: "#f43f5e", name: "Rose" },
 ];
 
-export const AVAILABLE_ICONS = [
+export const AVAILABLE_ICONS: IconOption[] = [
   { id: "book", value: "📚", category: "education" },
   { id: "pencil", value: "✏️", category: "education" },
   { id: "ruler", value: "📏", category: "education" },
@@ -116,4 +116,22 @@ export const AVAILABLE_ACTIVITIES: Omit<Activity, "id">[] = [
 
 export function generateUniqueId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+// Functions to create new Subject or Activity with generated IDs
+export function createNewSubject(
+  data: Omit<Subject, "id" | "teachers">
+): Subject {
+  return {
+    ...data,
+    id: generateUniqueId("s"),
+    teachers: [],
+  };
+}
+
+export function createNewActivity(data: Omit<Activity, "id">): Activity {
+  return {
+    ...data,
+    id: generateUniqueId("a"),
+  };
 }
