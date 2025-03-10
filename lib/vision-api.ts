@@ -1,14 +1,10 @@
 import { ImageAnnotatorClient } from "@google-cloud/vision";
-import path from "path";
 import { TimeTableData } from "./timetable";
 
 // Initialize the client with credentials
-const client = new ImageAnnotatorClient({
-  keyFilename: path.join(
-    process.cwd(),
-    "credentials/next-timetable-3ab9613301bd.json"
-  ),
-});
+const client = new ImageAnnotatorClient();
+// Note: The client will automatically use GOOGLE_APPLICATION_CREDENTIALS
+// environment variable to authenticate
 
 /**
  * Processes a file based on its type and extracts text
