@@ -200,17 +200,13 @@ export function ImportFile() {
     window.dispatchEvent(new Event("timetableDataChanged"));
   };
 
-  const handleContinue = () => {
-    // This would need to be implemented to handle manual entry
-    toast.success("Manual entry not implemented yet");
-  };
-
   return (
     <div className="w-full space-y-4">
       <Tabs defaultValue="upload" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="upload">Upload File</TabsTrigger>
-          <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+        <TabsList className="w-full">
+          <TabsTrigger value="upload" className="w-full">
+            Upload File
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="upload" className="pt-4">
@@ -347,19 +343,6 @@ export function ImportFile() {
               </div>
             </>
           )}
-        </TabsContent>
-
-        <TabsContent value="manual" className="pt-4">
-          <div className="text-center p-6 space-y-4">
-            <h3 className="text-sm font-medium">Manual Entry</h3>
-            <p className="text-xs text-muted-foreground">
-              Use this option if automatic extraction isn&apos;t working.
-              Continue to the next steps to manually create your timetable.
-            </p>
-            <Button onClick={handleContinue} className="mt-4">
-              Continue to Manual Setup
-            </Button>
-          </div>
         </TabsContent>
       </Tabs>
     </div>
