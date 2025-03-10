@@ -50,10 +50,27 @@ export async function POST(request: NextRequest) {
       // Parse the extracted text into timetable data
       const timetableData = parseTextToTimetableData(extractedText);
 
+      // Check if we got any meaningful data
+      const dataQuality = {
+        hasMetadata: !!timetableData.metadata,
+        hasDays:
+          Array.isArray(timetableData.days) && timetableData.days.length > 0,
+        hasTimeSlots:
+          Array.isArray(timetableData.timeSlots) &&
+          timetableData.timeSlots.length > 0,
+        hasSchedule:
+          Array.isArray(timetableData.schedule) &&
+          timetableData.schedule.length > 0,
+        hasSubjects:
+          Array.isArray(timetableData.subjects) &&
+          timetableData.subjects.length > 0,
+      };
+
       return NextResponse.json({
         success: true,
         text: extractedText,
         timetableData,
+        dataQuality,
       });
     } catch (processingError) {
       console.error("Error processing file content:", processingError);
