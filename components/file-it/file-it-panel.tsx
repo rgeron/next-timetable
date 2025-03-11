@@ -2,12 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AVAILABLE_ACTIVITIES,
-  AVAILABLE_COLORS,
-  AVAILABLE_ICONS,
-  AVAILABLE_SUBJECTS,
-} from "@/lib/file-it-data";
+import { AVAILABLE_ACTIVITIES, AVAILABLE_SUBJECTS } from "@/lib/file-it-data";
 import {
   Activity,
   Subject,
@@ -44,12 +39,6 @@ export function FileItSidebar() {
     setSearchQuery: setActivitySearchQuery,
     filteredItems: filteredActivities,
   } = useSearch(AVAILABLE_ACTIVITIES);
-
-  // Search states for colors and icons
-  const { searchQuery: colorSearchQuery, setSearchQuery: setColorSearchQuery } =
-    useSearch(AVAILABLE_COLORS);
-  const { searchQuery: iconSearchQuery, setSearchQuery: setIconSearchQuery } =
-    useSearch(AVAILABLE_ICONS);
 
   // Custom color and icon when customizing
   const [customColor, setCustomColor] = useState<string | undefined>();
@@ -144,8 +133,8 @@ export function FileItSidebar() {
     (subject: (typeof AVAILABLE_SUBJECTS)[0]) => {
       const newSubject = addSubjectToTimeTable(subject);
       setSelectedSubject(newSubject);
-      setCustomColor(newSubject.color);
-      setCustomIcon(newSubject.icon);
+      setCustomColor(subject.color);
+      setCustomIcon(subject.icon);
     },
     [addSubjectToTimeTable]
   );
@@ -155,8 +144,8 @@ export function FileItSidebar() {
     (activity: (typeof AVAILABLE_ACTIVITIES)[0]) => {
       const newActivity = addActivityToTimeTable(activity);
       setSelectedActivity(newActivity);
-      setCustomColor(newActivity.color);
-      setCustomIcon(newActivity.icon);
+      setCustomColor(activity.color);
+      setCustomIcon(activity.icon);
     },
     [addActivityToTimeTable]
   );
@@ -262,30 +251,23 @@ export function FileItSidebar() {
 
           <div className="h-32 overflow-y-auto pr-1">
             {filteredSubjects.length > 0 ? (
-              filteredSubjects.map((subject) => (
-                <Card
-                  key={subject.name}
-                  className={`mb-2 flex cursor-pointer items-center gap-2 p-2 transition-all hover:bg-accent ${
-                    selectedSubject?.name === subject.name
-                      ? "ring-2 ring-primary"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectSubject(subject)}
-                >
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-lg"
-                    style={{ backgroundColor: subject.color }}
+              <div className="space-y-1">
+                {filteredSubjects.map((subject) => (
+                  <button
+                    key={subject.name}
+                    className="flex w-full items-center gap-2 rounded-md p-2 text-left hover:bg-muted/50"
+                    onClick={() => handleSelectSubject(subject)}
                   >
-                    {subject.icon}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{subject.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {subject.shortName}
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-sm"
+                      style={{ backgroundColor: subject.color }}
+                    >
+                      {subject.icon}
                     </div>
-                  </div>
-                </Card>
-              ))
+                    <span className="truncate">{subject.name}</span>
+                  </button>
+                ))}
+              </div>
             ) : (
               <p className="text-center text-sm text-muted-foreground">
                 No subjects found
@@ -303,30 +285,23 @@ export function FileItSidebar() {
 
           <div className="h-32 overflow-y-auto pr-1">
             {filteredActivities.length > 0 ? (
-              filteredActivities.map((activity) => (
-                <Card
-                  key={activity.name}
-                  className={`mb-2 flex cursor-pointer items-center gap-2 p-2 transition-all hover:bg-accent ${
-                    selectedActivity?.name === activity.name
-                      ? "ring-2 ring-primary"
-                      : ""
-                  }`}
-                  onClick={() => handleSelectActivity(activity)}
-                >
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-lg"
-                    style={{ backgroundColor: activity.color }}
+              <div className="space-y-1">
+                {filteredActivities.map((activity) => (
+                  <button
+                    key={activity.name}
+                    className="flex w-full items-center gap-2 rounded-md p-2 text-left hover:bg-muted/50"
+                    onClick={() => handleSelectActivity(activity)}
                   >
-                    {activity.icon}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{activity.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {activity.shortName}
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-sm"
+                      style={{ backgroundColor: activity.color }}
+                    >
+                      {activity.icon}
                     </div>
-                  </div>
-                </Card>
-              ))
+                    <span className="truncate">{activity.name}</span>
+                  </button>
+                ))}
+              </div>
             ) : (
               <p className="text-center text-sm text-muted-foreground">
                 No activities found
