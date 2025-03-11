@@ -356,11 +356,6 @@ export function FileItSidebar() {
           <div className="space-y-4">
             <div>
               <h3 className="mb-2 text-sm font-medium">Color</h3>
-              <SearchInput
-                searchQuery={colorSearchQuery}
-                setSearchQuery={setColorSearchQuery}
-                placeholder="Search colors..."
-              />
               <div className="mt-2">
                 <ChooseColor
                   selectedColor={customColor || selectedEntity.color}
