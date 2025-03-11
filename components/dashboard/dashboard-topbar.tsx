@@ -86,7 +86,7 @@ function getStepDisplayName(step: Step): string {
     bienvenue: "Bienvenue",
     "importer-fichier": "Importer",
     horaires: "Horaires",
-    organisation: "Organisation",
+    organisation: "Remplir",
     personnaliser: "Personnaliser",
     imprimer: "Imprimer"
   };

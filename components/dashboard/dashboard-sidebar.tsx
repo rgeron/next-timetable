@@ -123,7 +123,7 @@ function renderSidebarContent(step: Step) {
     case "organisation":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Organisation</h2>
+          <h2 className="text-xl font-semibold">Remplir les créneaux</h2>
           <FileItSidebar />
         </div>
       );
@@ -133,7 +133,7 @@ function renderSidebarContent(step: Step) {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Personnaliser</h2>
           <p className="text-sm text-sidebar-foreground/80">
-            Personnalisez l'apparence et les paramètres de votre emploi du
+            Personnalisez l&apos;apparence et les paramètres de votre emploi du
             temps.
           </p>
           {/* Personalization controls would go here */}
