@@ -14,7 +14,7 @@ export function GoBackButton(props: {
       className={`w-full justify-center ${props.className || ""}`}
     >
       <ArrowLeft className="size-4" />
-      Go Back
+      Retour
     </Button>
   );
 }

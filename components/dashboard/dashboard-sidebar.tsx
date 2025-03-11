@@ -64,20 +64,20 @@ export function DashboardSidebar(props: {
 function renderSidebarContent(step: Step) {
   // Render different content based on the current step
   switch (step) {
-    case "welcome":
+    case "bienvenue":
       const handleStartFresh = () => {
         saveTimeTableData(defaultTimeTableData);
-        toast.success("Timetable reset to default settings");
+        toast.success("Emploi du temps réinitialisé aux paramètres par défaut");
         // Trigger a custom event to notify of timetable data change
         window.dispatchEvent(new Event("timetableDataChanged"));
       };
 
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Welcome</h2>
+          <h2 className="text-xl font-semibold">Bienvenue</h2>
           <p className="text-sm text-sidebar-foreground/80">
-            Get started with personalizing your timetable. Follow the steps to
-            create your perfect schedule.
+            Commencez à personnaliser votre emploi du temps. Suivez les étapes
+            pour créer votre planning idéal.
           </p>
 
           <Button
@@ -86,23 +86,23 @@ function renderSidebarContent(step: Step) {
             className="w-full mt-4"
           >
             <RefreshCw className="size-4 mr-2" />
-            Start Fresh
+            Recommencer à zéro
           </Button>
         </div>
       );
 
-    case "import-file":
+    case "importer-fichier":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Import File</h2>
+          <h2 className="text-xl font-semibold">Importer un fichier</h2>
           <p className="text-sm text-sidebar-foreground/80">
-            Upload your existing timetable or start from scratch.
+            Importez votre emploi du temps existant ou commencez de zéro.
           </p>
           <ImportFile />
         </div>
       );
 
-    case "timeline":
+    case "horaires":
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Horaires</h2>
@@ -120,37 +120,38 @@ function renderSidebarContent(step: Step) {
         </div>
       );
 
-    case "file-it":
+    case "organisation":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">File It</h2>
+          <h2 className="text-xl font-semibold">Organisation</h2>
           <FileItSidebar />
         </div>
       );
 
-    case "personalize":
+    case "personnaliser":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Personalize</h2>
+          <h2 className="text-xl font-semibold">Personnaliser</h2>
           <p className="text-sm text-sidebar-foreground/80">
-            Customize the appearance and settings of your timetable.
+            Personnalisez l'apparence et les paramètres de votre emploi du
+            temps.
           </p>
           {/* Personalization controls would go here */}
         </div>
       );
 
-    case "print":
+    case "imprimer":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Print</h2>
+          <h2 className="text-xl font-semibold">Imprimer</h2>
           <p className="text-sm text-sidebar-foreground/80">
-            Export or print your finalized timetable.
+            Exportez ou imprimez votre emploi du temps finalisé.
           </p>
           {/* Print/Export controls would go here */}
         </div>
       );
 
     default:
-      return <div>Select a step to continue</div>;
+      return <div>Sélectionnez une étape pour continuer</div>;
   }
 }

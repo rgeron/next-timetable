@@ -12,7 +12,7 @@ export function DashboardTopbar(props: {
     <div className="border-b bg-card">
       <div className="mx-auto flex h-16 max-w-7xl items-center px-4">
         {/* Logo */}
-        <div className="mr-8 flex-shrink-0 font-semibold">Timetable App</div>
+        <div className="mr-8 flex-shrink-0 font-semibold">Emploi du Temps</div>
 
         {/* Steps navigation */}
         <nav className="hidden flex-1 md:flex">
@@ -58,9 +58,8 @@ export function DashboardTopbar(props: {
                       />
                     )}
 
-                    {/* Step name formatted as Title Case */}
-                    {step.charAt(0).toUpperCase() +
-                      step.slice(1).replace(/-/g, " ")}
+                    {/* Obtenir le nom français de chaque étape */}
+                    {getStepDisplayName(step)}
                   </button>
                 </li>
               );
@@ -71,11 +70,26 @@ export function DashboardTopbar(props: {
         {/* Mobile view indicator (only shows current step) */}
         <div className="flex items-center md:hidden">
           <span className="text-sm font-medium">
-            {props.currentStep.charAt(0).toUpperCase() +
-              props.currentStep.slice(1).replace(/-/g, " ")}
+            {getStepDisplayName(props.currentStep)}
           </span>
         </div>
       </div>
     </div>
   );
+}
+
+/**
+ * Fonction qui renvoie le nom d'affichage en français pour chaque étape
+ */
+function getStepDisplayName(step: Step): string {
+  const displayNames: Record<Step, string> = {
+    bienvenue: "Bienvenue",
+    "importer-fichier": "Importer",
+    horaires: "Horaires",
+    organisation: "Organisation",
+    personnaliser: "Personnaliser",
+    imprimer: "Imprimer"
+  };
+  
+  return displayNames[step] || step.charAt(0).toUpperCase() + step.slice(1).replace(/-/g, " ");
 }

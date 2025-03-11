@@ -2,12 +2,12 @@
  * Steps available in the timetable personalization process
  */
 export const STEPS = [
-  "welcome",
-  "import-file",
-  "timeline",
-  "file-it",
-  "personalize",
-  "print",
+  "bienvenue",
+  "importer-fichier",
+  "horaires",
+  "organisation",
+  "personnaliser",
+  "imprimer",
 ] as const;
 
 export type Step = (typeof STEPS)[number];

@@ -73,14 +73,14 @@ export function ImportFile() {
       !file.type.includes("image/") &&
       !file.type.includes("application/pdf")
     ) {
-      toast.error("Only image or PDF files are supported");
+      toast.error("Seuls les fichiers image ou PDF sont supportés");
       return;
     }
 
     // Check file size (limit to 10MB)
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("File size exceeds the 10MB limit");
+      toast.error("La taille du fichier dépasse la limite de 10 Mo");
       return;
     }
 
@@ -90,7 +90,7 @@ export function ImportFile() {
 
     // For PDFs, show a special message
     if (file.type.includes("application/pdf")) {
-      toast.info("Processing PDF file. This may take a moment...");
+      toast.info("Traitement du fichier PDF en cours. Cela peut prendre un moment...");
     }
 
     // Simulate upload progress
@@ -119,7 +119,7 @@ export function ImportFile() {
 
       if (!response.ok) {
         const errorMessage =
-          result.details || result.error || "Failed to process file";
+          result.details || result.error || "Échec du traitement du fichier";
 
         // Check if it's a PDF-specific error
         if (
@@ -127,7 +127,7 @@ export function ImportFile() {
           errorMessage.includes("PDF")
         ) {
           throw new Error(
-            "PDF processing failed. Please try a different PDF or convert it to an image."
+            "Le traitement du PDF a échoué. Veuillez essayer un autre PDF ou le convertir en image."
           );
         }
 
@@ -141,49 +141,49 @@ export function ImportFile() {
         // Create preview of extracted data
         if (data.metadata) {
           setExtractedPreview({
-            school: data.metadata.school || "Unknown",
-            class: data.metadata.class || "Unknown",
-            year: data.metadata.year || "Unknown",
+            school: data.metadata.school || "Inconnu",
+            class: data.metadata.class || "Inconnu",
+            year: data.metadata.year || "Inconnu",
             daysCount: data.days?.length || 0,
             timeSlotsCount: data.timeSlots?.length || 0,
           });
 
           if (data.days?.length === 0 && data.timeSlots?.length === 0) {
             toast.warning(
-              "Limited data could be extracted. You may need to manually enter some information."
+              "Peu de données ont pu être extraites. Vous devrez peut-être saisir certaines informations manuellement."
             );
           } else {
-            toast.success("Timetable data extracted successfully!");
+            toast.success("Données de l'emploi du temps extraites avec succès !");
           }
         } else {
           toast.warning(
-            "Limited data could be extracted. The timetable structure wasn't recognized."
+            "Peu de données ont pu être extraites. La structure de l'emploi du temps n'a pas été reconnue."
           );
         }
       } else {
-        toast.warning("No timetable data could be extracted");
+        toast.warning("Aucune donnée d'emploi du temps n'a pu être extraite");
       }
     } catch (error) {
-      console.error("Error processing file:", error);
+      console.error("Erreur lors du traitement du fichier:", error);
 
       // Provide more helpful messages for common errors
       const errorMessage = (error as Error).message;
 
       if (errorMessage.includes("PDF")) {
-        toast.error("PDF processing failed", {
+        toast.error("Échec du traitement du PDF", {
           description:
-            "Try converting your PDF to an image (JPEG/PNG) and uploading that instead.",
+            "Essayez de convertir votre PDF en image (JPEG/PNG) et de le télécharger à nouveau.",
         });
       } else if (
         errorMessage.includes("network") ||
         errorMessage.includes("connection")
       ) {
-        toast.error("Network error", {
-          description: "Check your internet connection and try again.",
+        toast.error("Erreur réseau", {
+          description: "Vérifiez votre connexion Internet et réessayez.",
         });
       } else {
-        toast.error(`Error: ${errorMessage}`, {
-          description: "Please try another file or check your connection.",
+        toast.error(`Erreur: ${errorMessage}`, {
+          description: "Veuillez essayer un autre fichier ou vérifier votre connexion.",
         });
       }
     } finally {
@@ -194,7 +194,7 @@ export function ImportFile() {
 
   const handleConfirmImport = () => {
     // This would need to be implemented to save the extracted data
-    toast.success("Timetable data imported successfully!");
+    toast.success("Données de l'emploi du temps importées avec succès !");
 
     // Trigger event to refresh the timetable view
     window.dispatchEvent(new Event("timetableDataChanged"));
@@ -205,7 +205,7 @@ export function ImportFile() {
       <Tabs defaultValue="upload" className="w-full">
         <TabsList className="w-full">
           <TabsTrigger value="upload" className="w-full">
-            Upload File
+            Importer un fichier
           </TabsTrigger>
         </TabsList>
 
@@ -236,11 +236,11 @@ export function ImportFile() {
                 <div className="space-y-1">
                   <p className="text-sm font-medium">
                     {isUploading
-                      ? "Processing file..."
-                      : "Drop your file here or click to browse"}
+                      ? "Traitement du fichier..."
+                      : "Déposez votre fichier ici ou cliquez pour parcourir"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Upload an image or PDF of your timetable
+                    Téléchargez une image ou un PDF de votre emploi du temps
                   </p>
                 </div>
                 {isUploading && (
@@ -248,8 +248,8 @@ export function ImportFile() {
                     <Progress value={uploadProgress} className="h-2" />
                     <p className="text-xs text-muted-foreground">
                       {uploadProgress < 100
-                        ? "Analyzing timetable..."
-                        : "Finalizing..."}
+                        ? "Analyse de l'emploi du temps..."
+                        : "Finalisation..."}
                     </p>
                   </div>
                 )}
@@ -265,31 +265,31 @@ export function ImportFile() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">
-                    Extracted Data Preview
+                    Aperçu des données extraites
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Review the extracted information before importing
+                    Vérifiez les informations extraites avant l'importation
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2 mb-4">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-muted-foreground">School:</div>
+                  <div className="text-muted-foreground">École :</div>
                   <div className="font-medium">{extractedPreview.school}</div>
 
-                  <div className="text-muted-foreground">Class:</div>
+                  <div className="text-muted-foreground">Classe :</div>
                   <div className="font-medium">{extractedPreview.class}</div>
 
-                  <div className="text-muted-foreground">Academic Year:</div>
+                  <div className="text-muted-foreground">Année scolaire :</div>
                   <div className="font-medium">{extractedPreview.year}</div>
 
-                  <div className="text-muted-foreground">Days Found:</div>
+                  <div className="text-muted-foreground">Jours trouvés :</div>
                   <div className="font-medium">
                     {extractedPreview.daysCount}
                   </div>
 
-                  <div className="text-muted-foreground">Time Slots:</div>
+                  <div className="text-muted-foreground">Créneaux horaires :</div>
                   <div className="font-medium">
                     {extractedPreview.timeSlotsCount}
                   </div>
@@ -302,10 +302,10 @@ export function ImportFile() {
                   size="sm"
                   onClick={() => setExtractedPreview(null)}
                 >
-                  Try Another File
+                  Essayer un autre fichier
                 </Button>
                 <Button size="sm" onClick={handleConfirmImport}>
-                  Import Timetable
+                  Importer l'emploi du temps
                 </Button>
               </div>
             </Card>
@@ -315,7 +315,7 @@ export function ImportFile() {
             <>
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-muted-foreground">
-                  Supported formats:
+                  Formats supportés :
                 </p>
                 <div className="flex gap-3">
                   <Card className="flex items-center gap-2 p-2 text-xs">
@@ -334,9 +334,9 @@ export function ImportFile() {
                   <AlertCircle className="mr-2 h-4 w-4 mt-0.5" />
                   <div>
                     <p>
-                      The quality of data extraction depends on the clarity of
-                      the image. For best results, ensure the timetable is
-                      clearly visible with good lighting.
+                      La qualité de l'extraction des données dépend de la clarté de 
+                      l'image. Pour de meilleurs résultats, assurez-vous que l'emploi 
+                      du temps est clairement visible avec un bon éclairage.
                     </p>
                   </div>
                 </div>

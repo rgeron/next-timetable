@@ -12,8 +12,8 @@ export function ContinueButton(props: {
       disabled={props.disabled}
       className={`w-full justify-center ${props.className || ""}`}
     >
-      Continue
+      Continuer
       <ArrowRight className="size-4" />
     </Button>
   );
-} 
+}
