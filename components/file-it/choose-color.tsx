@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { AVAILABLE_COLORS } from "@/lib/file-it-data";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { HexColorPicker } from "react-colorful";
 import { useSelection } from "./shared-utils";
 
 type ColorItem = (typeof AVAILABLE_COLORS)[0];
@@ -11,6 +11,11 @@ export function ChooseColor(props: {
   onSelect?: (color: string) => void;
   selectedColor?: string;
 }) {
+  // État local pour stocker la couleur sélectionnée par le color picker
+  const [customColor, setCustomColor] = useState(
+    props.selectedColor || "#ef4444"
+  );
+
   // Map the selectedColor string to a ColorItem for the useSelection hook
   const initialSelectedItem = useMemo(() => {
     if (!props.selectedColor) return undefined;
@@ -22,56 +27,55 @@ export function ChooseColor(props: {
   const { selectedItem, handleSelect } =
     useSelection<ColorItem>(initialSelectedItem);
 
-  const handleConfirmColor = () => {
-    if (!selectedItem) return;
+  const handleColorSelect = (color: ColorItem) => {
+    handleSelect(color);
+    setCustomColor(color.value);
 
     if (props.onSelect) {
-      props.onSelect(selectedItem.value);
+      props.onSelect(color.value);
+    }
+  };
+
+  // Gestion du changement de couleur via le color picker
+  const handleColorChange = (color: string) => {
+    setCustomColor(color);
+
+    if (props.onSelect) {
+      props.onSelect(color);
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-semibold">Choose a Color</h2>
-
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
-        {AVAILABLE_COLORS.map((color) => (
-          <ColorCard
-            key={color.id}
-            color={color}
-            isSelected={selectedItem?.id === color.id}
-            onSelect={() => handleSelect(color)}
-          />
-        ))}
+      {/* Color Picker */}
+      <div className="w-full">
+        <HexColorPicker
+          color={customColor}
+          onChange={handleColorChange}
+          className="w-full"
+        />
       </div>
 
-      <div className="mt-4 flex justify-end">
-        <Button onClick={handleConfirmColor} disabled={!selectedItem}>
-          Select Color
-        </Button>
+      {/* Palette de couleurs prédéfinies */}
+      <div>
+        <h3 className="text-sm font-medium mb-2">Couleurs prédéfinies</h3>
+        <div className="grid grid-cols-5 gap-2">
+          {AVAILABLE_COLORS.map((color) => (
+            <div key={color.id} className="flex flex-col items-center">
+              <div
+                className={`h-8 w-8 cursor-pointer rounded-full transition-all hover:scale-110 ${
+                  selectedItem?.id === color.id || customColor === color.value
+                    ? "ring-2 ring-primary ring-offset-1"
+                    : ""
+                }`}
+                style={{ backgroundColor: color.value }}
+                onClick={() => handleColorSelect(color)}
+                title={color.name}
+              />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-}
-
-function ColorCard(props: {
-  color: ColorItem;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const { color, isSelected, onSelect } = props;
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div
-        className={`h-12 w-12 cursor-pointer rounded-full transition-all hover:scale-110 ${
-          isSelected ? "ring-4 ring-primary ring-offset-2" : ""
-        }`}
-        style={{ backgroundColor: color.value }}
-        onClick={onSelect}
-        title={color.name}
-      />
-      <span className="text-xs text-muted-foreground">{color.name}</span>
     </div>
   );
 }

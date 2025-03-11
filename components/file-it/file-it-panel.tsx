@@ -1,8 +1,13 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AVAILABLE_ACTIVITIES,
+  AVAILABLE_COLORS,
+  AVAILABLE_ICONS,
+  AVAILABLE_SUBJECTS,
+} from "@/lib/file-it-data";
 import {
   Activity,
   Subject,
@@ -11,10 +16,10 @@ import {
 } from "@/lib/timetable";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChooseActivity } from "./choose-activity";
 import { ChooseColor } from "./choose-color";
 import { ChooseIcon } from "./choose-icon";
-import { ChooseSubject } from "./choose-subject";
+import { SearchInput } from "./search-input";
+import { useSearch, useTimeTableUpdater } from "./shared-utils";
 
 export function FileItSidebar() {
   // State for tracking which entity type is selected (subject or activity)
@@ -22,23 +27,47 @@ export function FileItSidebar() {
     "subject"
   );
 
-  // Selected entity after choosing
-  const [selectedEntity, setSelectedEntity] = useState<
-    (Subject | Activity) | null
-  >(null);
+  // Selected entity states
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
+    null
+  );
+
+  // Search states for subjects and activities
+  const {
+    searchQuery: subjectSearchQuery,
+    setSearchQuery: setSubjectSearchQuery,
+    filteredItems: filteredSubjects,
+  } = useSearch(AVAILABLE_SUBJECTS);
+  const {
+    searchQuery: activitySearchQuery,
+    setSearchQuery: setActivitySearchQuery,
+    filteredItems: filteredActivities,
+  } = useSearch(AVAILABLE_ACTIVITIES);
+
+  // Search states for colors and icons
+  const { searchQuery: colorSearchQuery, setSearchQuery: setColorSearchQuery } =
+    useSearch(AVAILABLE_COLORS);
+  const { searchQuery: iconSearchQuery, setSearchQuery: setIconSearchQuery } =
+    useSearch(AVAILABLE_ICONS);
 
   // Custom color and icon when customizing
   const [customColor, setCustomColor] = useState<string | undefined>();
   const [customIcon, setCustomIcon] = useState<string | undefined>();
 
-  // Mode of the panel (choose, customize, apply)
-  const [mode, setMode] = useState<"choose" | "customize" | "apply">("choose");
+  // TimeTable updater
+  const { addSubjectToTimeTable, addActivityToTimeTable } =
+    useTimeTableUpdater();
 
-  // Setup event listener for clicking on timetable cells when in apply mode
+  // Current selected entity (either subject or activity)
+  const selectedEntity =
+    entityType === "subject" ? selectedSubject : selectedActivity;
+
+  // Apply selected entity and customization to timetable slot
   useEffect(() => {
     const handleTimeTableClick = (e: MouseEvent) => {
-      // Only process clicks when we're in apply mode and have a selected entity
-      if (mode !== "apply" || !selectedEntity) return;
+      // Only process clicks when we have a selected entity
+      if (!selectedEntity) return;
 
       const target = e.target as HTMLElement;
 
@@ -66,12 +95,19 @@ export function FileItSidebar() {
     return () => {
       document.removeEventListener("click", handleTimeTableClick);
     };
-  }, [mode, selectedEntity]);
+  }, [selectedEntity]);
 
   // Apply the selected entity to a schedule entry
   const applyEntityToScheduleEntry = useCallback(
     (scheduleId: number) => {
       if (!selectedEntity) return;
+
+      // Apply customizations first
+      const updatedEntity = {
+        ...selectedEntity,
+        color: customColor || selectedEntity.color,
+        icon: customIcon || selectedEntity.icon,
+      };
 
       const timeTableData = getTimeTableData();
 
@@ -86,7 +122,7 @@ export function FileItSidebar() {
       updatedSchedule[scheduleEntryIndex] = {
         ...updatedSchedule[scheduleEntryIndex],
         type: entityType === "subject" ? "subject" : "activity",
-        entityId: selectedEntity.id,
+        entityId: updatedEntity.id,
       };
 
       // Save the updated timetable
@@ -98,38 +134,48 @@ export function FileItSidebar() {
       // Trigger a custom event to refresh the timetable
       window.dispatchEvent(new Event("timetableDataChanged"));
 
-      toast.success(`Applied ${selectedEntity.name} to the selected slot`);
+      toast.success(`Applied ${updatedEntity.name} to the selected slot`);
     },
-    [selectedEntity, entityType]
+    [selectedEntity, customColor, customIcon, entityType]
   );
 
-  // Reset the state to initial values
-  const resetState = useCallback(() => {
-    setSelectedEntity(null);
-    setCustomColor(undefined);
-    setCustomIcon(undefined);
-    setMode("choose");
-  }, []);
+  // Handle selecting a subject
+  const handleSelectSubject = useCallback(
+    (subject: (typeof AVAILABLE_SUBJECTS)[0]) => {
+      const newSubject = addSubjectToTimeTable(subject);
+      setSelectedSubject(newSubject);
+      setCustomColor(newSubject.color);
+      setCustomIcon(newSubject.icon);
+    },
+    [addSubjectToTimeTable]
+  );
 
-  // Handle entity selection from subject or activity choosers
-  const handleEntitySelect = useCallback((entity: Subject | Activity) => {
-    setSelectedEntity(entity);
-    setCustomColor(entity.color);
-    setCustomIcon(entity.icon);
-    setMode("customize");
-  }, []);
+  // Handle selecting an activity
+  const handleSelectActivity = useCallback(
+    (activity: (typeof AVAILABLE_ACTIVITIES)[0]) => {
+      const newActivity = addActivityToTimeTable(activity);
+      setSelectedActivity(newActivity);
+      setCustomColor(newActivity.color);
+      setCustomIcon(newActivity.icon);
+    },
+    [addActivityToTimeTable]
+  );
 
-  // Save customizations to the entity
-  const handleCustomize = useCallback(() => {
-    if (!selectedEntity || !customColor || !customIcon) return;
+  // Update the selected entity with new customizations
+  const updateEntityCustomization = useCallback(() => {
+    if (!selectedEntity) return;
 
     const timeTableData = getTimeTableData();
 
-    if (selectedEntity.id.startsWith("s-")) {
+    if (entityType === "subject" && selectedSubject) {
       // Update subject
       const updatedSubjects = timeTableData.subjects.map((subject) =>
-        subject.id === selectedEntity.id
-          ? { ...subject, color: customColor, icon: customIcon }
+        subject.id === selectedSubject.id
+          ? {
+              ...subject,
+              color: customColor || subject.color,
+              icon: customIcon || subject.icon,
+            }
           : subject
       );
 
@@ -137,11 +183,21 @@ export function FileItSidebar() {
         ...timeTableData,
         subjects: updatedSubjects,
       });
-    } else if (selectedEntity.id.startsWith("a-")) {
+
+      setSelectedSubject({
+        ...selectedSubject,
+        color: customColor || selectedSubject.color,
+        icon: customIcon || selectedSubject.icon,
+      });
+    } else if (entityType === "activity" && selectedActivity) {
       // Update activity
       const updatedActivities = timeTableData.activities.map((activity) =>
-        activity.id === selectedEntity.id
-          ? { ...activity, color: customColor, icon: customIcon }
+        activity.id === selectedActivity.id
+          ? {
+              ...activity,
+              color: customColor || activity.color,
+              icon: customIcon || activity.icon,
+            }
           : activity
       );
 
@@ -149,145 +205,187 @@ export function FileItSidebar() {
         ...timeTableData,
         activities: updatedActivities,
       });
+
+      setSelectedActivity({
+        ...selectedActivity,
+        color: customColor || selectedActivity.color,
+        icon: customIcon || selectedActivity.icon,
+      });
     }
-
-    // Update our local state
-    setSelectedEntity({
-      ...selectedEntity,
-      color: customColor,
-      icon: customIcon,
-    });
-
-    setMode("apply");
 
     // Trigger a custom event to refresh the timetable
     window.dispatchEvent(new Event("timetableDataChanged"));
+  }, [
+    selectedEntity,
+    entityType,
+    selectedSubject,
+    selectedActivity,
+    customColor,
+    customIcon,
+  ]);
 
-    toast.success("Customizations saved! Now click on slots in the timetable.");
-  }, [selectedEntity, customColor, customIcon]);
+  // Apply customizations when they change
+  useEffect(() => {
+    if (selectedEntity) {
+      updateEntityCustomization();
+    }
+  }, [customColor, customIcon, selectedEntity, updateEntityCustomization]);
 
-  // Render the customize view when in customize mode
-  const renderCustomizeView = () => {
-    if (!selectedEntity) return null;
-
-    return (
-      <div className="space-y-6">
-        <Card className="flex items-center gap-4 p-4">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-full text-2xl"
-            style={{ backgroundColor: customColor || selectedEntity.color }}
-          >
-            {customIcon || selectedEntity.icon}
-          </div>
-          <div>
-            <h3 className="text-lg font-medium">{selectedEntity.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              {selectedEntity.shortName}
-            </p>
-          </div>
-        </Card>
-
-        <div className="space-y-6">
-          <ChooseColor
-            selectedColor={customColor || selectedEntity.color}
-            onSelect={setCustomColor}
-          />
-
-          <ChooseIcon
-            selectedIcon={customIcon || selectedEntity.icon}
-            onSelect={setCustomIcon}
-          />
-        </div>
-
-        <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={resetState}>
-            Back
-          </Button>
-          <Button onClick={handleCustomize}>Save & Apply</Button>
-        </div>
-      </div>
-    );
-  };
-
-  // Render the apply view when in apply mode
-  const renderApplyView = () => {
-    if (!selectedEntity) return null;
-
-    return (
-      <div className="space-y-6">
-        <div className="rounded-lg border bg-background p-4">
-          <h3 className="mb-2 text-base font-medium">Ready to Apply</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Click on slots in the timetable to apply{" "}
-            <strong>{selectedEntity.name}</strong>.
-          </p>
-
-          <div className="flex items-center gap-4">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-full text-2xl"
-              style={{ backgroundColor: selectedEntity.color }}
-            >
-              {selectedEntity.icon}
-            </div>
-            <div>
-              <p className="font-medium">{selectedEntity.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {selectedEntity.shortName}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Button onClick={resetState}>
-            Choose Another {entityType === "subject" ? "Subject" : "Activity"}
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  // Main render method
   return (
     <div className="space-y-4">
-      <p className="text-sm text-sidebar-foreground/80 mb-4">
-        Choose a subject or activity, customize it, and apply it to slots in
-        your timetable.
+      <p className="mb-4 text-sm text-sidebar-foreground/80">
+        Select a subject or activity, customize it, and click on slots in your
+        timetable to apply.
       </p>
 
-      {mode === "choose" && (
-        <Tabs
-          defaultValue={entityType}
-          onValueChange={(value) =>
-            setEntityType(value as "subject" | "activity")
-          }
-        >
-          <TabsList className="mb-4 w-full">
-            <TabsTrigger value="subject" className="flex-1">
-              Subjects
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="flex-1">
-              Activities
-            </TabsTrigger>
-          </TabsList>
+      <Tabs
+        defaultValue={entityType}
+        onValueChange={(value) =>
+          setEntityType(value as "subject" | "activity")
+        }
+      >
+        <TabsList className="mb-4 w-full">
+          <TabsTrigger value="subject" className="flex-1">
+            Subjects
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="flex-1">
+            Activities
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="subject">
-            <ChooseSubject
-              onSelect={(subject) => handleEntitySelect(subject)}
-            />
-          </TabsContent>
+        <TabsContent value="subject" className="space-y-4">
+          <SearchInput
+            searchQuery={subjectSearchQuery}
+            setSearchQuery={setSubjectSearchQuery}
+            placeholder="Search subjects..."
+          />
 
-          <TabsContent value="activity">
-            <ChooseActivity
-              onSelect={(activity) => handleEntitySelect(activity)}
-            />
-          </TabsContent>
-        </Tabs>
+          <div className="h-32 overflow-y-auto pr-1">
+            {filteredSubjects.length > 0 ? (
+              filteredSubjects.map((subject) => (
+                <Card
+                  key={subject.name}
+                  className={`mb-2 flex cursor-pointer items-center gap-2 p-2 transition-all hover:bg-accent ${
+                    selectedSubject?.name === subject.name
+                      ? "ring-2 ring-primary"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectSubject(subject)}
+                >
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-lg"
+                    style={{ backgroundColor: subject.color }}
+                  >
+                    {subject.icon}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{subject.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {subject.shortName}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <p className="text-center text-sm text-muted-foreground">
+                No subjects found
+              </p>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="activity" className="space-y-4">
+          <SearchInput
+            searchQuery={activitySearchQuery}
+            setSearchQuery={setActivitySearchQuery}
+            placeholder="Search activities..."
+          />
+
+          <div className="h-32 overflow-y-auto pr-1">
+            {filteredActivities.length > 0 ? (
+              filteredActivities.map((activity) => (
+                <Card
+                  key={activity.name}
+                  className={`mb-2 flex cursor-pointer items-center gap-2 p-2 transition-all hover:bg-accent ${
+                    selectedActivity?.name === activity.name
+                      ? "ring-2 ring-primary"
+                      : ""
+                  }`}
+                  onClick={() => handleSelectActivity(activity)}
+                >
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-lg"
+                    style={{ backgroundColor: activity.color }}
+                  >
+                    {activity.icon}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{activity.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {activity.shortName}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <p className="text-center text-sm text-muted-foreground">
+                No activities found
+              </p>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {selectedEntity && (
+        <div className="mt-4 space-y-4">
+          <Card className="flex items-center gap-3 p-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full text-xl"
+              style={{ backgroundColor: customColor || selectedEntity.color }}
+            >
+              {customIcon || selectedEntity.icon}
+            </div>
+            <div>
+              <h3 className="text-sm font-medium">{selectedEntity.name}</h3>
+              <p className="text-xs text-muted-foreground">
+                {selectedEntity.shortName} • Ready to apply
+              </p>
+            </div>
+          </Card>
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="mb-2 text-sm font-medium">Color</h3>
+              <SearchInput
+                searchQuery={colorSearchQuery}
+                setSearchQuery={setColorSearchQuery}
+                placeholder="Search colors..."
+              />
+              <div className="mt-2">
+                <ChooseColor
+                  selectedColor={customColor || selectedEntity.color}
+                  onSelect={setCustomColor}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-2 text-sm font-medium">Icon</h3>
+              <SearchInput
+                searchQuery={iconSearchQuery}
+                setSearchQuery={setIconSearchQuery}
+                placeholder="Search icons..."
+              />
+              <div className="mt-2">
+                <ChooseIcon
+                  selectedIcon={customIcon || selectedEntity.icon}
+                  onSelect={setCustomIcon}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-
-      {mode === "customize" && renderCustomizeView()}
-
-      {mode === "apply" && renderApplyView()}
     </div>
   );
 }

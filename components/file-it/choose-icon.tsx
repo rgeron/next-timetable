@@ -1,10 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AVAILABLE_ICONS } from "@/lib/file-it-data";
 import { useMemo } from "react";
-import { SearchInput } from "./search-input";
 import { useSearch, useSelection } from "./shared-utils";
 
 type IconItem = (typeof AVAILABLE_ICONS)[0];
@@ -25,11 +23,11 @@ export function ChooseIcon(props: {
   const { selectedItem, handleSelect } =
     useSelection<IconItem>(initialSelectedItem);
 
-  const handleConfirmIcon = () => {
-    if (!selectedItem) return;
-
+  const handleIconSelect = (icon: IconItem) => {
+    handleSelect(icon);
+    
     if (props.onSelect) {
-      props.onSelect(selectedItem.value);
+      props.onSelect(icon.value);
     }
   };
 
@@ -48,59 +46,29 @@ export function ChooseIcon(props: {
   }, [filteredItems]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-semibold">Choose an Icon</h2>
-
-      <SearchInput
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        placeholder="Search icons..."
-      />
-
-      <div className="space-y-6">
+    <div className="flex flex-col gap-2">
+      <div className="space-y-4 max-h-40 overflow-y-auto pr-1">
         {Object.entries(groupedIcons).map(([category, icons]) => (
           <div key={category}>
-            <h3 className="mb-2 text-sm font-medium uppercase text-muted-foreground">
+            <h3 className="mb-2 text-xs font-medium uppercase text-muted-foreground">
               {category}
             </h3>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+            <div className="grid grid-cols-6 gap-2">
               {icons.map((icon) => (
-                <IconCard
+                <Card
                   key={icon.id}
-                  icon={icon}
-                  isSelected={selectedItem?.id === icon.id}
-                  onSelect={() => handleSelect(icon)}
-                />
+                  className={`flex cursor-pointer items-center justify-center p-2 text-xl transition-all hover:bg-accent ${
+                    selectedItem?.id === icon.id ? "ring-2 ring-primary" : ""
+                  }`}
+                  onClick={() => handleIconSelect(icon)}
+                >
+                  {icon.value}
+                </Card>
               ))}
             </div>
           </div>
         ))}
       </div>
-
-      <div className="mt-4 flex justify-end">
-        <Button onClick={handleConfirmIcon} disabled={!selectedItem}>
-          Select Icon
-        </Button>
-      </div>
     </div>
-  );
-}
-
-function IconCard(props: {
-  icon: IconItem;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const { icon, isSelected, onSelect } = props;
-
-  return (
-    <Card
-      className={`flex cursor-pointer items-center justify-center p-4 text-3xl transition-all hover:bg-accent ${
-        isSelected ? "ring-2 ring-primary" : ""
-      }`}
-      onClick={onSelect}
-    >
-      {icon.value}
-    </Card>
   );
 }
