@@ -1,11 +1,11 @@
-import { ImageAnnotatorClient } from "@google-cloud/vision";
+import { OpenAI } from "openai";
 import { Subject } from "./common-types";
 import { ScheduleEntry, TimeTableData } from "./timetable";
 
-// Initialize the client with credentials
-const client = new ImageAnnotatorClient();
-// Note: The client will automatically use GOOGLE_APPLICATION_CREDENTIALS
-// environment variable to authenticate
+// Initialize the OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // This will be loaded from environment variables
+});
 
 /**
  * Processes a file based on its type and extracts text
@@ -19,8 +19,8 @@ export async function processFile(
     try {
       return await extractTextFromPdfWithPDFJSExtract(buffer);
     } catch (error) {
-      console.warn("PDFExtract failed, falling back to Vision API:", error);
-      // Fallback to Vision API for PDF text extraction
+      console.warn("PDFExtract failed, falling back to OpenAI API:", error);
+      // Fallback to OpenAI API for PDF text extraction
       return await extractTextFromImage(buffer);
     }
   } else if (fileType.includes("image/")) {
@@ -91,60 +91,76 @@ async function extractTextFromPdfWithPDFJSExtract(
 }
 
 /**
- * Extracts text from an image using Google Cloud Vision API
+ * Extracts text from an image using OpenAI's Vision API
  * Also used as a fallback for PDF files
  */
 async function extractTextFromImage(buffer: Buffer): Promise<string> {
   try {
-    const [result] = await client.textDetection(buffer);
-    const detections = result.textAnnotations;
-    if (!detections || detections.length === 0) {
+    // Convert buffer to base64
+    const base64Image = buffer.toString("base64");
+
+    // Call OpenAI API with the image
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "This is a school timetable/schedule. Extract all text from this image, preserving the spatial layout. For each text element, include its approximate position as [x,y:text]. Pay special attention to:\n\n1. Time slots (e.g., 8h00-9h00)\n2. Days of the week (e.g., Lundi, Mardi)\n3. Subject names (e.g., Mathématiques, Français)\n4. Room numbers (e.g., Salle 101)\n5. Teacher names if present\n\nMaintain the relative positions of text elements to preserve the grid structure of the timetable.",
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${
+                  buffer.length > 1024 * 1024 ? "application/pdf" : "image/png"
+                };base64,${base64Image}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 4096,
+    });
+
+    // Extract the text from the response
+    const extractedText = response.choices[0]?.message?.content || "";
+
+    // If no text was extracted, throw an error
+    if (!extractedText) {
       throw new Error("No text detected in the image");
     }
 
-    // Get full text annotation which includes position info
-    let textWithPosition = "";
+    // Process the extracted text to ensure it has position markers
+    // If OpenAI didn't return position markers, try to add them
+    if (!extractedText.includes("[") || !extractedText.includes(":]")) {
+      console.warn(
+        "OpenAI response doesn't contain position markers, adding basic positioning"
+      );
 
-    // Skip first detection (which is the full text) and process individual text blocks
-    if (detections.length > 1) {
-      // Sort by vertical position first, then horizontal
-      const sortedDetections = [...detections.slice(1)].sort((a, b) => {
-        const aY = a.boundingPoly?.vertices?.[0]?.y || 0;
-        const bY = b.boundingPoly?.vertices?.[0]?.y || 0;
+      // Split by lines and add basic position markers
+      const lines = extractedText.split("\n");
+      let textWithPosition = "";
 
-        // Group items on the same line (with tolerance)
-        if (Math.abs(aY - bY) < 10) {
-          const aX = a.boundingPoly?.vertices?.[0]?.x || 0;
-          const bX = b.boundingPoly?.vertices?.[0]?.x || 0;
-          return aX - bX;
-        }
-        return aY - bY;
+      lines.forEach((line, yIndex) => {
+        const words = line.split(/\s+/);
+        let xPosition = 10;
+
+        words.forEach((word) => {
+          if (word.trim()) {
+            textWithPosition += `[${xPosition},${(yIndex + 1) * 20}:${word}] `;
+            xPosition += word.length * 10 + 10; // Simple spacing based on word length
+          }
+        });
+
+        textWithPosition += "\n";
       });
 
-      let currentY =
-        sortedDetections.length > 0
-          ? sortedDetections[0].boundingPoly?.vertices?.[0]?.y || 0
-          : 0;
-
-      for (const detection of sortedDetections) {
-        const y = detection.boundingPoly?.vertices?.[0]?.y || 0;
-        const x = detection.boundingPoly?.vertices?.[0]?.x || 0;
-
-        // New line if y position changes significantly
-        if (Math.abs(y - currentY) > 10) {
-          textWithPosition += "\n";
-          currentY = y;
-        }
-
-        // Add position markers
-        textWithPosition += `[${x},${y}:${detection.description}] `;
-      }
-    } else {
-      // Fallback to just the text if we can't get position info
-      textWithPosition = detections[0].description || "";
+      return textWithPosition.trim();
     }
 
-    return textWithPosition;
+    return extractedText;
   } catch (error) {
     console.error("Error extracting text from image/buffer:", error);
     throw new Error(`Text extraction failed: ${(error as Error).message}`);
