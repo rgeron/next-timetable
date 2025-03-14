@@ -1,7 +1,7 @@
 import { parseTextToTimetableData, processFile } from "@/lib/vision-api";
 import { NextRequest, NextResponse } from "next/server";
 
-// Increase timeout and body size for PDF processing
+// Increase timeout and body size for PDF and image processing with OpenAI
 export const config = {
   api: {
     bodyParser: false,
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     try {
-      // Process the file based on its type
+      // Process the file using OpenAI's Vision API
       const extractedText = await processFile(buffer, file.type);
 
       // Parse the extracted text into timetable data

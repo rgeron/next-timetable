@@ -7,6 +7,32 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // This will be loaded from environment variables
 });
 
+// Add these interfaces at the top of the file, after the imports
+interface OpenAITimetableData {
+  school?: string;
+  year?: string;
+  class?: string;
+  days?: string[];
+  timeSlots?: Array<string | { start: string; end: string }>;
+  subjects?: Array<string | { name: string }>;
+  schedule?: Array<{
+    day: string;
+    timeSlot: string;
+    subject: string;
+    room?: string;
+    notes?: string;
+  }>;
+}
+
+interface SubjectObject {
+  id: string;
+  name: string;
+  shortName: string;
+  color: string;
+  icon: string;
+  teachers: string[];
+}
+
 /**
  * Processes a file based on its type and extracts text
  */
@@ -108,7 +134,7 @@ async function extractTextFromImage(buffer: Buffer): Promise<string> {
           content: [
             {
               type: "text",
-              text: "This is a school timetable/schedule. Extract all text from this image, preserving the spatial layout. For each text element, include its approximate position as [x,y:text]. Pay special attention to:\n\n1. Time slots (e.g., 8h00-9h00)\n2. Days of the week (e.g., Lundi, Mardi)\n3. Subject names (e.g., Mathématiques, Français)\n4. Room numbers (e.g., Salle 101)\n5. Teacher names if present\n\nMaintain the relative positions of text elements to preserve the grid structure of the timetable.",
+              text: "This is a school timetable/schedule. Analyze this image and extract the following information in a structured format:\n\n1. Days of the week present in the timetable\n2. Time slots (start and end times)\n3. For each day and time slot, identify the subject taught\n4. Any additional information like room numbers or teacher names\n\nReturn the data in a structured format that can be easily parsed. Include the raw text of the timetable at the end.",
             },
             {
               type: "image_url",
@@ -132,34 +158,6 @@ async function extractTextFromImage(buffer: Buffer): Promise<string> {
       throw new Error("No text detected in the image");
     }
 
-    // Process the extracted text to ensure it has position markers
-    // If OpenAI didn't return position markers, try to add them
-    if (!extractedText.includes("[") || !extractedText.includes(":]")) {
-      console.warn(
-        "OpenAI response doesn't contain position markers, adding basic positioning"
-      );
-
-      // Split by lines and add basic position markers
-      const lines = extractedText.split("\n");
-      let textWithPosition = "";
-
-      lines.forEach((line, yIndex) => {
-        const words = line.split(/\s+/);
-        let xPosition = 10;
-
-        words.forEach((word) => {
-          if (word.trim()) {
-            textWithPosition += `[${xPosition},${(yIndex + 1) * 20}:${word}] `;
-            xPosition += word.length * 10 + 10; // Simple spacing based on word length
-          }
-        });
-
-        textWithPosition += "\n";
-      });
-
-      return textWithPosition.trim();
-    }
-
     return extractedText;
   } catch (error) {
     console.error("Error extracting text from image/buffer:", error);
@@ -173,51 +171,261 @@ async function extractTextFromImage(buffer: Buffer): Promise<string> {
 export function parseTextToTimetableData(
   extractedText: string
 ): Partial<TimeTableData> {
-  // Extract text with position markers if available
-  const hasPositionMarkers =
-    extractedText.includes("[") && extractedText.includes(":]");
+  try {
+    // First, try to parse as JSON if the response looks like JSON
+    if (
+      extractedText.trim().startsWith("{") &&
+      extractedText.trim().endsWith("}")
+    ) {
+      try {
+        // Extract JSON if it's embedded in text
+        const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const jsonData = JSON.parse(jsonMatch[0]);
+          return processStructuredData(jsonData);
+        }
+      } catch (e) {
+        console.warn(
+          "Failed to parse as JSON, falling back to text parsing",
+          e
+        );
+      }
+    }
 
-  // Split text into lines
-  const lines = extractedText
-    .split("\n")
-    .filter((line) => line.trim().length > 0);
+    // Split text into lines for traditional parsing
+    const lines = extractedText
+      .split("\n")
+      .filter((line) => line.trim().length > 0);
 
-  // Basic metadata
-  const metadata = {
-    school: extractSchoolName(lines),
-    year: extractYear(lines),
-    class: extractClass(lines),
-  };
+    // Basic metadata
+    const metadata = {
+      school: extractSchoolName(lines),
+      year: extractYear(lines),
+      class: extractClass(lines),
+    };
 
-  // Extract days and time slots
-  const days = extractDays(lines);
-  const timeSlots = extractTimeSlots(lines);
+    // Extract days and time slots
+    const days = extractDays(lines);
+    const timeSlots = extractTimeSlots(lines);
 
-  // Extract schedule entries - this is the key addition
-  let scheduleEntries: ScheduleEntry[] = [];
-
-  if (hasPositionMarkers) {
-    // Use position-based grid analysis for more accurate extraction
-    scheduleEntries = extractScheduleEntriesFromPositionData(
+    // Extract schedule entries from text
+    const scheduleEntries = extractScheduleEntriesFromText(
       lines,
       days,
       timeSlots
     );
-  } else {
-    // Fallback to text-only analysis
-    scheduleEntries = extractScheduleEntriesFromText(lines, days, timeSlots);
+
+    // Attempt to identify subjects from schedule content
+    const extractedSubjects = extractSubjectsFromSchedule(
+      lines,
+      scheduleEntries
+    );
+
+    return {
+      metadata,
+      days: days.length > 0 ? days : undefined,
+      timeSlots: timeSlots.length > 0 ? timeSlots : undefined,
+      schedule: scheduleEntries.length > 0 ? scheduleEntries : undefined,
+      subjects: extractedSubjects.length > 0 ? extractedSubjects : undefined,
+    };
+  } catch (error) {
+    console.error("Error parsing timetable data:", error);
+    return {
+      metadata: {
+        school: "Unknown School",
+        year: new Date().getFullYear().toString(),
+        class: "Unknown Class",
+      },
+    };
+  }
+}
+
+/**
+ * Process structured data from OpenAI into timetable format
+ */
+function processStructuredData(
+  data: OpenAITimetableData
+): Partial<TimeTableData> {
+  const result: Partial<TimeTableData> = {
+    metadata: {
+      school: data.school || "Unknown School",
+      year: data.year || new Date().getFullYear().toString(),
+      class: data.class || "Unknown Class",
+    },
+    days: [],
+    timeSlots: [],
+    subjects: [],
+    schedule: [],
+  };
+
+  // Process days
+  if (data.days && Array.isArray(data.days)) {
+    result.days = data.days.map((day: string, index: number) => ({
+      id: index + 1,
+      name: day,
+    }));
   }
 
-  // Attempt to identify subjects from schedule content
-  const extractedSubjects = extractSubjectsFromSchedule(lines, scheduleEntries);
+  // Process time slots
+  if (data.timeSlots && Array.isArray(data.timeSlots)) {
+    result.timeSlots = data.timeSlots.map((slot, index: number) => {
+      // Handle different possible formats
+      let start = typeof slot === "string" ? slot : slot.start || "";
+      let end = typeof slot === "string" ? "" : slot.end || "";
 
-  return {
-    metadata,
-    days: days.length > 0 ? days : undefined,
-    timeSlots: timeSlots.length > 0 ? timeSlots : undefined,
-    schedule: scheduleEntries.length > 0 ? scheduleEntries : undefined,
-    subjects: extractedSubjects.length > 0 ? extractedSubjects : undefined,
-  };
+      if (typeof slot === "string") {
+        // Handle format like "8h00-9h00"
+        const parts = slot.split(/[-–—]/);
+        if (parts.length === 2) {
+          start = parts[0].trim();
+          end = parts[1].trim();
+        }
+      }
+
+      // Normalize time format
+      start = normalizeTimeFormat(start);
+      end = normalizeTimeFormat(end);
+
+      return {
+        id: index + 1,
+        start,
+        end: end || incrementTimeByOneHour(start),
+      };
+    });
+  }
+
+  // Process subjects
+  const subjectMap = new Map<string, SubjectObject>();
+  if (data.subjects && Array.isArray(data.subjects)) {
+    data.subjects.forEach((subject, index: number) => {
+      const name = typeof subject === "string" ? subject : subject.name;
+      if (name && !subjectMap.has(name)) {
+        const shortName = generateShortName(name);
+        const color = getColorForIndex(index);
+
+        const subjectObj: SubjectObject = {
+          id: `s-${index + 1}`,
+          name,
+          shortName,
+          color,
+          icon: "📘",
+          teachers: [],
+        };
+
+        subjectMap.set(name, subjectObj);
+        result.subjects?.push(subjectObj);
+      }
+    });
+  }
+
+  // Process schedule
+  if (data.schedule && Array.isArray(data.schedule)) {
+    data.schedule.forEach((entry, index: number) => {
+      const dayName = entry.day;
+      const timeSlot = entry.timeSlot;
+      const subject = entry.subject;
+
+      if (dayName && timeSlot && subject) {
+        const dayId =
+          result.days?.findIndex(
+            (d) => d.name.toLowerCase() === dayName.toLowerCase()
+          ) ?? -1;
+        let timeSlotId = -1;
+
+        // Find matching time slot
+        result.timeSlots?.forEach((slot, idx) => {
+          if (timeSlot.includes(slot.start) || timeSlot.includes(slot.end)) {
+            timeSlotId = idx;
+          }
+        });
+
+        if (dayId >= 0 && timeSlotId >= 0) {
+          // Find or create subject
+          let subjectId = "";
+          let existingSubject = Array.from(subjectMap.values()).find(
+            (s) => s.name.toLowerCase() === subject.toLowerCase()
+          );
+
+          if (!existingSubject && subject) {
+            const newSubjectIndex = (result.subjects?.length || 0) + 1;
+            existingSubject = {
+              id: `s-${newSubjectIndex}`,
+              name: subject,
+              shortName: generateShortName(subject),
+              color: getColorForIndex(newSubjectIndex - 1),
+              icon: "📘",
+              teachers: [],
+            };
+            subjectMap.set(subject, existingSubject);
+            result.subjects?.push(existingSubject);
+          }
+
+          if (existingSubject) {
+            subjectId = existingSubject.id;
+          }
+
+          result.schedule?.push({
+            id: index + 1,
+            dayId: dayId + 1,
+            timeSlotId: timeSlotId + 1,
+            type: "subject",
+            entityId: subjectId,
+            room: entry.room || "",
+            notes: entry.notes || "",
+            weekType: null,
+            split: { enabled: false },
+          });
+        }
+      }
+    });
+  }
+
+  return result;
+}
+
+// Helper function to generate a short name for a subject
+function generateShortName(name: string): string {
+  if (name.length <= 10) return name;
+
+  // Generate abbreviation from first letters of words
+  const words = name.split(/\s+/);
+  if (words.length > 1) {
+    return words.map((word) => word[0]).join("");
+  }
+
+  // Just take first few letters
+  return name.slice(0, 6);
+}
+
+// Helper function to get a color based on index
+function getColorForIndex(index: number): string {
+  const colors = [
+    "#3498db",
+    "#e74c3c",
+    "#2ecc71",
+    "#f1c40f",
+    "#9b59b6",
+    "#e67e22",
+    "#1abc9c",
+    "#95a5a6",
+    "#34495e",
+    "#16a085",
+    "#d35400",
+    "#8e44ad",
+    "#27ae60",
+    "#2980b9",
+    "#f39c12",
+  ];
+  return colors[index % colors.length];
+}
+
+// Helper function to increment time by one hour
+function incrementTimeByOneHour(time: string): string {
+  const [hours, minutes] = time.split(":").map(Number);
+  const newHours = (hours + 1) % 24;
+  return `${newHours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
 }
 
 // Helper functions for parsing - customize based on timetable format
@@ -355,186 +563,7 @@ function normalizeTimeFormat(time: string): string {
 }
 
 /**
- * Extracts schedule entries from text with position markers
- */
-function extractScheduleEntriesFromPositionData(
-  lines: string[],
-  days: { id: number; name: string }[],
-  timeSlots: { id: number; start: string; end: string }[]
-): ScheduleEntry[] {
-  if (days.length === 0 || timeSlots.length === 0) {
-    return [];
-  }
-
-  const scheduleEntries: ScheduleEntry[] = [];
-
-  // Create a grid to map positions to days and time slots
-  type PositionData = { x: number; y: number; text: string };
-  const positionData: PositionData[] = [];
-
-  // Extract positioned text elements
-  const positionRegex = /\[(\d+),(\d+):([^\]]+)\]/g;
-  lines.forEach((line) => {
-    let match;
-    while ((match = positionRegex.exec(line)) !== null) {
-      const x = parseInt(match[1]);
-      const y = parseInt(match[2]);
-      const text = match[3].trim();
-      if (text) {
-        positionData.push({ x, y, text });
-      }
-    }
-  });
-
-  // Find the positions of day headers and time slots
-  const dayPositions: { id: number; x: number; width: number }[] = [];
-  const timeSlotPositions: { id: number; y: number; height: number }[] = [];
-
-  // First, locate day headers by name match
-  for (const day of days) {
-    const dayElements = positionData.filter((item) =>
-      item.text.toLowerCase().includes(day.name.toLowerCase())
-    );
-
-    if (dayElements.length > 0) {
-      // Find average x position for this day
-      const avgX =
-        dayElements.reduce((sum, el) => sum + el.x, 0) / dayElements.length;
-      dayPositions.push({ id: day.id, x: avgX, width: 100 }); // Width is an estimate
-    }
-  }
-
-  // Sort day positions from left to right
-  dayPositions.sort((a, b) => a.x - b.x);
-
-  // Calculate column widths
-  for (let i = 0; i < dayPositions.length - 1; i++) {
-    dayPositions[i].width = dayPositions[i + 1].x - dayPositions[i].x - 10; // 10px buffer
-  }
-
-  // Second, locate time slots by looking for time patterns
-  for (const slot of timeSlots) {
-    const timePattern = `${slot.start.replace(":", "h")}-${slot.end.replace(
-      ":",
-      "h"
-    )}`;
-    const altTimePattern = `${slot.start}-${slot.end}`;
-
-    const slotElements = positionData.filter(
-      (item) =>
-        item.text.includes(timePattern) || item.text.includes(altTimePattern)
-    );
-
-    if (slotElements.length > 0) {
-      // Find average y position for this time slot
-      const avgY =
-        slotElements.reduce((sum, el) => sum + el.y, 0) / slotElements.length;
-      timeSlotPositions.push({ id: slot.id, y: avgY, height: 50 }); // Height is an estimate
-    }
-  }
-
-  // Sort time slot positions from top to bottom
-  timeSlotPositions.sort((a, b) => a.y - b.y);
-
-  // Calculate row heights
-  for (let i = 0; i < timeSlotPositions.length - 1; i++) {
-    timeSlotPositions[i].height =
-      timeSlotPositions[i + 1].y - timeSlotPositions[i].y - 5; // 5px buffer
-  }
-
-  // Now scan through all elements and assign them to the right day/timeslot
-  for (const item of positionData) {
-    // Skip if the text is a day name or time slot
-    if (
-      days.some((day) =>
-        item.text.toLowerCase().includes(day.name.toLowerCase())
-      ) ||
-      timeSlots.some(
-        (slot) => item.text.includes(slot.start) || item.text.includes(slot.end)
-      )
-    ) {
-      continue;
-    }
-
-    // Find which day column this item belongs to
-    let dayId: number | null = null;
-    for (let i = 0; i < dayPositions.length; i++) {
-      const day = dayPositions[i];
-      const nextDay = dayPositions[i + 1];
-
-      if (nextDay) {
-        if (item.x >= day.x && item.x < nextDay.x) {
-          dayId = day.id;
-          break;
-        }
-      } else if (item.x >= day.x) {
-        dayId = day.id;
-        break;
-      }
-    }
-
-    // Find which time slot row this item belongs to
-    let timeSlotId: number | null = null;
-    for (let i = 0; i < timeSlotPositions.length; i++) {
-      const slot = timeSlotPositions[i];
-      const nextSlot = timeSlotPositions[i + 1];
-
-      if (nextSlot) {
-        if (item.y >= slot.y && item.y < nextSlot.y) {
-          timeSlotId = slot.id;
-          break;
-        }
-      } else if (item.y >= slot.y) {
-        timeSlotId = slot.id;
-        break;
-      }
-    }
-
-    // If we found both day and time slot, create a schedule entry
-    if (dayId && timeSlotId) {
-      // Check if we already have an entry for this day/timeslot
-      let entry = scheduleEntries.find(
-        (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
-      );
-
-      if (!entry) {
-        // Create a new entry
-        entry = {
-          id: scheduleEntries.length + 1,
-          dayId,
-          timeSlotId,
-          type: "subject", // Default to subject
-          entityId: "", // Will be set based on subject name
-          room: "",
-          notes: "",
-          weekType: null,
-          split: { enabled: false },
-        };
-        scheduleEntries.push(entry);
-      }
-
-      // Add the text to the appropriate field
-      if (item.text.match(/salle|room/i)) {
-        entry.room = item.text.replace(/salle|room/i, "").trim();
-      } else if (entry.entityId === "") {
-        // Assume first non-room text is the subject name
-        entry.entityId = item.text;
-      } else {
-        // Additional info goes into notes
-        if (entry.notes) {
-          entry.notes += " " + item.text;
-        } else {
-          entry.notes = item.text;
-        }
-      }
-    }
-  }
-
-  return scheduleEntries;
-}
-
-/**
- * Fallback method to extract schedule entries from text without position data
+ * Extract schedule entries from text
  */
 function extractScheduleEntriesFromText(
   lines: string[],
