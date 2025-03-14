@@ -14,7 +14,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { toast } from "sonner";
 
 type TimetableContextType = {
   timetableData: TimeTableData | null;
@@ -88,7 +87,6 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     });
 
     setTimetableData(updatedData);
-    toast.success("Ajouté à l'emploi du temps");
 
     // Trigger a custom event to notify of timetable data change
     window.dispatchEvent(new Event("timetableDataChanged"));
@@ -158,10 +156,6 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
 
     saveTimeTableData(newData);
     setTimetableData(newData);
-
-    toast.success(
-      `Nouvelle ${type === "subject" ? "matière" : "activité"} ajoutée`
-    );
 
     return newId;
   };
