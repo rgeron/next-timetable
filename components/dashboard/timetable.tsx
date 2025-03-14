@@ -230,6 +230,26 @@ function ScheduleCell({
     );
   }
 
+  // Check if teacher should be displayed
+  const showTeacherMatch = entry.notes.match(
+    /ShowTeacher: (true|false)(?:\n|$)/
+  );
+  const shouldShowTeacher = showTeacherMatch
+    ? showTeacherMatch[1] === "true"
+    : false;
+
+  // Extract teacher name from notes if it exists and should be shown
+  const teacherInfo =
+    shouldShowTeacher && entry.notes.includes("Professeur:") ? (
+      <div className="text-xs mt-1 opacity-80">
+        {entry.notes
+          .split("\n")
+          .find((line) => line.startsWith("Professeur:"))
+          ?.replace("Professeur:", "Prof:")
+          .trim()}
+      </div>
+    ) : null;
+
   return (
     <div
       className={`p-2 border-b border-l hover:bg-opacity-90 transition-colors cursor-pointer ${
@@ -252,16 +272,8 @@ function ScheduleCell({
           <div className="text-xs mt-1 opacity-80">Salle: {entry.room}</div>
         )}
 
-        {/* Extract teacher name from notes if it exists */}
-        {entry.notes && entry.notes.includes("Professeur:") && (
-          <div className="text-xs mt-1 opacity-80">
-            {entry.notes
-              .split("\n")
-              .find((line) => line.startsWith("Professeur:"))
-              ?.replace("Professeur:", "Prof:")
-              .trim()}
-          </div>
-        )}
+        {/* Show teacher info only if enabled */}
+        {teacherInfo}
       </div>
     </div>
   );
