@@ -74,8 +74,8 @@ export function Timetable({
 
   return (
     <div className="w-full p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xl font-bold">
+      <div className="mb-4 flex flex-col items-center justify-center">
+        <h2 className="text-2xl font-bold mb-2">
           {settings?.title ? settings.title : "Emploi du Temps"}
         </h2>
         <div className="text-sm text-muted-foreground">
