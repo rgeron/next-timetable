@@ -43,12 +43,15 @@ export function FileItPanel() {
   const [shortName, setShortName] = useState("");
   const [isEditingShortName, setIsEditingShortName] = useState(false);
   const [eraserMode, setEraserMode] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   useEffect(() => {
     // Reset search when entity type changes
     setSearchTerm("");
     setSelectedEntityId("");
     setShowAddNew(false);
+    // Show the dropdown when switching between subject and activity
+    setIsInputFocused(true);
   }, [entityType, setSelectedEntityId]);
 
   useEffect(() => {
@@ -91,6 +94,19 @@ export function FileItPanel() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setSelectedEntityId("");
+  };
+
+  const handleInputFocus = () => {
+    if (!eraserMode) {
+      setIsInputFocused(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // Use a small delay to allow click events on the dropdown items to fire first
+    setTimeout(() => {
+      setIsInputFocused(false);
+    }, 200);
   };
 
   const handleEntitySelect = (id: string) => {
@@ -140,15 +156,19 @@ export function FileItPanel() {
     }
   };
 
-  const filteredEntities =
-    timetableData && searchTerm
-      ? (entityType === "subject"
-          ? timetableData.subjects
-          : timetableData.activities
-        ).filter((entity) =>
-          entity.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : [];
+  // Get all entities of the current type
+  const allEntities = timetableData
+    ? entityType === "subject"
+      ? timetableData.subjects
+      : timetableData.activities
+    : [];
+
+  // Filter entities based on search term if there is one
+  const filteredEntities = searchTerm
+    ? allEntities.filter((entity) =>
+        entity.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : allEntities;
 
   const toggleEraserMode = () => {
     setEraserMode(!eraserMode);
@@ -258,23 +278,37 @@ export function FileItPanel() {
           value={searchTerm}
           onChange={handleSearchChange}
           disabled={eraserMode}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
         />
 
-        {searchTerm && filteredEntities.length > 0 && (
-          <div className="border rounded-md p-2 max-h-[200px] overflow-y-auto">
-            {filteredEntities.map((entity) => (
-              <div
-                key={entity.id}
-                className={`p-2 cursor-pointer rounded hover:bg-muted ${
-                  selectedEntityId === entity.id ? "bg-muted" : ""
-                } flex items-center`}
-                onClick={() => handleEntitySelect(entity.id)}
-              >
-                <span>{entity.name}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {(isInputFocused || searchTerm) &&
+          filteredEntities.length > 0 &&
+          !eraserMode && (
+            <div className="border rounded-md p-2 max-h-[200px] overflow-y-auto">
+              {filteredEntities.map((entity) => (
+                <div
+                  key={entity.id}
+                  className={`p-2 cursor-pointer rounded hover:bg-muted ${
+                    selectedEntityId === entity.id ? "bg-muted" : ""
+                  } flex items-center gap-2`}
+                  onClick={() => handleEntitySelect(entity.id)}
+                >
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: entity.color }}
+                  ></div>
+                  <span className="text-lg">{entity.icon}</span>
+                  <span className="flex-1">{entity.name}</span>
+                  {entity.shortName && entity.shortName !== entity.name && (
+                    <span className="text-xs text-muted-foreground">
+                      ({entity.shortName})
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
         {showAddNew && (
           <div className="mt-2">
