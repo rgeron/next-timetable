@@ -72,12 +72,12 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
       // Default to 1 hour after the last end time
       const lastEndTime = lastSlot.end;
       const [hourStr, minStr] = lastEndTime.split("h");
-      let hour = parseInt(hourStr, 10);
+      const hour = parseInt(hourStr, 10);
       const min = minStr ? parseInt(minStr, 10) : 0;
 
       // Calculate new times (1 hour later)
-      let newStartHour = hour;
-      let newStartMin = min;
+      const newStartHour = hour;
+      const newStartMin = min;
 
       let newEndHour = hour + 1;
       let newEndMin = min;

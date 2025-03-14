@@ -90,7 +90,9 @@ export function ImportFile() {
 
     // For PDFs, show a special message
     if (file.type.includes("application/pdf")) {
-      toast.info("Traitement du fichier PDF en cours. Cela peut prendre un moment...");
+      toast.info(
+        "Traitement du fichier PDF en cours. Cela peut prendre un moment..."
+      );
     }
 
     // Simulate upload progress
@@ -153,7 +155,9 @@ export function ImportFile() {
               "Peu de données ont pu être extraites. Vous devrez peut-être saisir certaines informations manuellement."
             );
           } else {
-            toast.success("Données de l'emploi du temps extraites avec succès !");
+            toast.success(
+              "Données de l'emploi du temps extraites avec succès !"
+            );
           }
         } else {
           toast.warning(
@@ -183,7 +187,8 @@ export function ImportFile() {
         });
       } else {
         toast.error(`Erreur: ${errorMessage}`, {
-          description: "Veuillez essayer un autre fichier ou vérifier votre connexion.",
+          description:
+            "Veuillez essayer un autre fichier ou vérifier votre connexion.",
         });
       }
     } finally {
@@ -268,7 +273,7 @@ export function ImportFile() {
                     Aperçu des données extraites
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Vérifiez les informations extraites avant l'importation
+                    Vérifiez les informations extraites avant l&apos;importation
                   </p>
                 </div>
               </div>
@@ -289,7 +294,9 @@ export function ImportFile() {
                     {extractedPreview.daysCount}
                   </div>
 
-                  <div className="text-muted-foreground">Créneaux horaires :</div>
+                  <div className="text-muted-foreground">
+                    Créneaux horaires :
+                  </div>
                   <div className="font-medium">
                     {extractedPreview.timeSlotsCount}
                   </div>
@@ -305,7 +312,7 @@ export function ImportFile() {
                   Essayer un autre fichier
                 </Button>
                 <Button size="sm" onClick={handleConfirmImport}>
-                  Importer l'emploi du temps
+                  Importer l&apos;emploi du temps
                 </Button>
               </div>
             </Card>
@@ -334,9 +341,10 @@ export function ImportFile() {
                   <AlertCircle className="mr-2 h-4 w-4 mt-0.5" />
                   <div>
                     <p>
-                      La qualité de l'extraction des données dépend de la clarté de 
-                      l'image. Pour de meilleurs résultats, assurez-vous que l'emploi 
-                      du temps est clairement visible avec un bon éclairage.
+                      La qualité de l&apos;extraction des données dépend de la
+                      clarté de l&apos;image. Pour de meilleurs résultats,
+                      assurez-vous que l&apos;emploi du temps est clairement
+                      visible avec un bon éclairage.
                     </p>
                   </div>
                 </div>
