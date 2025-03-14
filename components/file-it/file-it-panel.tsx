@@ -2,15 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { type Activity, type Subject } from "@/lib/common-types";
-import {
-  getTimeTableData,
-  saveTimeTableData,
-  updateScheduleEntry,
-  type TimeTableData,
-} from "@/lib/timetable";
+import { useTimetable } from "@/lib/timetable-context";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 // Custom event for timetable slot selection
 declare global {
@@ -20,56 +13,25 @@ declare global {
 }
 
 export function FileItPanel() {
-  const [timetableData, setTimetableData] = useState<TimeTableData | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [entityType, setEntityType] = useState<"subject" | "activity">(
-    "subject"
-  );
+  const {
+    timetableData,
+    isLoading,
+    selectedEntityId,
+    entityType,
+    setSelectedEntityId,
+    setEntityType,
+    addNewEntity,
+  } = useTimetable();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [showAddNew, setShowAddNew] = useState(false);
-
-  useEffect(() => {
-    // Load timetable data from localStorage
-    const data = getTimeTableData();
-    setTimetableData(data);
-    setIsLoading(false);
-
-    // Listen for storage events to update the timetable when data changes
-    const handleStorageChange = () => {
-      const updatedData = getTimeTableData();
-      setTimetableData(updatedData);
-    };
-
-    // Listen for timetable slot selection events
-    const handleSlotSelection = (
-      event: CustomEvent<{ dayId: number; timeSlotId: number }>
-    ) => {
-      const { dayId, timeSlotId } = event.detail;
-      if (selectedEntityId) {
-        addToTimetableSlot(dayId, timeSlotId);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("timetableDataChanged", handleStorageChange);
-    window.addEventListener("timetableSlotSelected", handleSlotSelection);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("timetableDataChanged", handleStorageChange);
-      window.removeEventListener("timetableSlotSelected", handleSlotSelection);
-    };
-  }, [selectedEntityId]);
 
   useEffect(() => {
     // Reset search when entity type changes
     setSearchTerm("");
     setSelectedEntityId("");
     setShowAddNew(false);
-  }, [entityType]);
+  }, [entityType, setSelectedEntityId]);
 
   useEffect(() => {
     // Check if search term matches any existing entities
@@ -105,89 +67,15 @@ export function FileItPanel() {
   };
 
   const handleAddNewEntity = () => {
-    if (!timetableData || !searchTerm) return;
+    if (!searchTerm) return;
 
-    const newData = structuredClone(timetableData);
-
-    if (entityType === "subject") {
-      const newId = `s-${newData.subjects.length + 1}`;
-      const shortName = generateShortName(searchTerm);
-      const colorIndex = newData.subjects.length % colors.length;
-
-      const newSubject: Subject = {
-        id: newId,
-        name: searchTerm,
-        shortName,
-        color: colors[colorIndex],
-        icon: "📘", // Default icon
-        teachers: [],
-      };
-
-      newData.subjects.push(newSubject);
+    const newId = addNewEntity(searchTerm, entityType);
+    if (newId) {
       setSelectedEntityId(newId);
-    } else {
-      const newId = `a-${newData.activities.length + 1}`;
-      const shortName = generateShortName(searchTerm);
-      const colorIndex = newData.activities.length % colors.length;
-
-      const newActivity: Activity = {
-        id: newId,
-        name: searchTerm,
-        shortName,
-        color: colors[colorIndex],
-        icon: "📋", // Default icon
-      };
-
-      newData.activities.push(newActivity);
-      setSelectedEntityId(newId);
+      setSearchTerm("");
+      setShowAddNew(false);
     }
-
-    saveTimeTableData(newData);
-    setTimetableData(newData);
-    setSearchTerm("");
-    setShowAddNew(false);
-
-    toast.success(
-      `Nouvelle ${entityType === "subject" ? "matière" : "activité"} ajoutée`
-    );
   };
-
-  const addToTimetableSlot = (dayId: number, timeSlotId: number) => {
-    if (!timetableData || !selectedEntityId) return;
-
-    const updatedData = updateScheduleEntry(timetableData, dayId, timeSlotId, {
-      type: entityType,
-      entityId: selectedEntityId,
-    });
-
-    setTimetableData(updatedData);
-    toast.success("Ajouté à l'emploi du temps");
-  };
-
-  // Helper function to generate short name from full name
-  const generateShortName = (name: string): string => {
-    if (name.length <= 10) return name;
-
-    const words = name.split(" ");
-    if (words.length > 1) {
-      return words.map((word) => word[0]).join("");
-    }
-
-    return name.slice(0, 6);
-  };
-
-  // Colors for new entities
-  const colors = [
-    "#3498db",
-    "#e74c3c",
-    "#2ecc71",
-    "#f1c40f",
-    "#9b59b6",
-    "#e67e22",
-    "#1abc9c",
-    "#95a5a6",
-    "#34495e",
-  ];
 
   const filteredEntities =
     timetableData && searchTerm

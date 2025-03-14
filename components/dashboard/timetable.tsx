@@ -3,11 +3,11 @@
 import {
   getEntityById,
   getScheduleEntry,
-  getTimeTableData,
   type ScheduleEntry,
   type TimeTableData,
 } from "@/lib/timetable";
-import React, { useEffect, useState } from "react";
+import { useTimetable } from "@/lib/timetable-context";
+import React from "react";
 
 // Function to calculate minutes from time string (e.g. "8h30" -> 510 minutes)
 function timeToMinutes(timeStr: string): number {
@@ -28,47 +28,7 @@ function calculateSlotHeight(start: string, end: string): number {
 }
 
 export function Timetable() {
-  const [timetableData, setTimetableData] = useState<TimeTableData | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Load timetable data from localStorage
-    const data = getTimeTableData();
-    setTimetableData(data);
-    setIsLoading(false);
-
-    // Listen for storage events to update the timetable when data changes
-    const handleStorageChange = () => {
-      const updatedData = getTimeTableData();
-      setTimetableData(updatedData);
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    // Listen for custom event from TimelineEditor
-    const handleCustomEvent = () => {
-      const updatedData = getTimeTableData();
-      setTimetableData(updatedData);
-    };
-
-    window.addEventListener("timetableDataChanged", handleCustomEvent);
-
-    // Refresh data every 2 seconds to catch any localStorage changes
-    // This is needed because the storage event doesn't trigger in the same window
-    // that made the change
-    const intervalId = setInterval(() => {
-      const updatedData = getTimeTableData();
-      setTimetableData(updatedData);
-    }, 2000);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("timetableDataChanged", handleCustomEvent);
-      clearInterval(intervalId);
-    };
-  }, []);
+  const { timetableData, isLoading } = useTimetable();
 
   if (isLoading || !timetableData) {
     return (
@@ -144,6 +104,8 @@ export function Timetable() {
                       entry={entry}
                       timetableData={timetableData}
                       height={slotHeight}
+                      dayId={day.id}
+                      timeSlotId={timeSlot.id}
                     />
                   );
                 })}
@@ -160,17 +122,33 @@ function ScheduleCell({
   entry,
   timetableData,
   height,
+  dayId,
+  timeSlotId,
 }: {
   entry?: ScheduleEntry | null;
   timetableData: TimeTableData;
   height: number;
+  dayId: number;
+  timeSlotId: number;
 }) {
+  const { addToTimetableSlot } = useTimetable();
+
+  const handleCellClick = () => {
+    console.log("Cell clicked:", {
+      dayId,
+      timeSlotId,
+      entityId: entry?.entityId,
+    });
+    addToTimetableSlot(dayId, timeSlotId);
+  };
+
   if (!entry || !entry.entityId) {
     return (
       <div
-        className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+        className="p-2 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer"
         style={{ height: `${height}px` }}
         data-schedule-id={entry?.id || ""}
+        onClick={handleCellClick}
       >
         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
           -
@@ -184,9 +162,10 @@ function ScheduleCell({
   if (!entity) {
     return (
       <div
-        className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+        className="p-2 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer"
         style={{ height: `${height}px` }}
         data-schedule-id={entry.id}
+        onClick={handleCellClick}
       >
         <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
           Erreur
@@ -200,12 +179,13 @@ function ScheduleCell({
 
     return (
       <div
-        className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+        className="p-2 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer"
         style={{
           borderLeft: `4px solid ${entity.color}`,
           height: `${height}px`,
         }}
         data-schedule-id={entry.id}
+        onClick={handleCellClick}
       >
         <div className="w-full h-full grid grid-rows-2 gap-1">
           {/* First entity */}
@@ -245,12 +225,13 @@ function ScheduleCell({
 
   return (
     <div
-      className="p-2 border-b border-l hover:bg-muted/40 transition-colors"
+      className="p-2 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer"
       style={{
         borderLeft: `4px solid ${entity.color}`,
         height: `${height}px`,
       }}
       data-schedule-id={entry.id}
+      onClick={handleCellClick}
     >
       <div
         className="w-full h-full p-1 rounded-md flex flex-col"
