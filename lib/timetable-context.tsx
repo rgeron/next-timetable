@@ -29,6 +29,11 @@ type TimetableContextType = {
     type: "subject" | "activity",
     color: string
   ) => void;
+  updateEntityIcon: (
+    entityId: string,
+    type: "subject" | "activity",
+    icon: string
+  ) => void;
 };
 
 const TimetableContext = createContext<TimetableContextType | undefined>(
@@ -195,6 +200,36 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event("timetableDataChanged"));
   };
 
+  const updateEntityIcon = (
+    entityId: string,
+    type: "subject" | "activity",
+    icon: string
+  ) => {
+    if (!timetableData || !entityId) return;
+
+    const newData = structuredClone(timetableData);
+
+    if (type === "subject") {
+      const subjectIndex = newData.subjects.findIndex((s) => s.id === entityId);
+      if (subjectIndex !== -1) {
+        newData.subjects[subjectIndex].icon = icon;
+      }
+    } else {
+      const activityIndex = newData.activities.findIndex(
+        (a) => a.id === entityId
+      );
+      if (activityIndex !== -1) {
+        newData.activities[activityIndex].icon = icon;
+      }
+    }
+
+    saveTimeTableData(newData);
+    setTimetableData(newData);
+
+    // Trigger a custom event to notify of timetable data change
+    window.dispatchEvent(new Event("timetableDataChanged"));
+  };
+
   const value = {
     timetableData,
     isLoading,
@@ -205,6 +240,7 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     addToTimetableSlot,
     addNewEntity,
     updateEntityColor,
+    updateEntityIcon,
   };
 
   return (

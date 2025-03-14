@@ -10,6 +10,7 @@ import {
 import { useTimetable } from "@/lib/timetable-context";
 import { useEffect, useState } from "react";
 import { HexColorPicker } from "react-colorful";
+import { IconPicker } from "./icon-picker";
 
 // Custom event for timetable slot selection
 declare global {
@@ -28,11 +29,13 @@ export function FileItPanel() {
     setEntityType,
     addNewEntity,
     updateEntityColor,
+    updateEntityIcon,
   } = useTimetable();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddNew, setShowAddNew] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
 
   useEffect(() => {
@@ -111,6 +114,13 @@ export function FileItPanel() {
     }
   };
 
+  const handleIconSelect = (icon: string) => {
+    if (selectedEntityId && timetableData) {
+      updateEntityIcon(selectedEntityId, entityType, icon);
+      setIconPickerOpen(false);
+    }
+  };
+
   const filteredEntities =
     timetableData && searchTerm
       ? (entityType === "subject"
@@ -179,6 +189,7 @@ export function FileItPanel() {
                   className="w-4 h-4 rounded-full mr-2"
                   style={{ backgroundColor: entity.color }}
                 />
+                <span className="mr-2">{entity.icon}</span>
                 {entity.name}
               </div>
             ))}
@@ -205,36 +216,60 @@ export function FileItPanel() {
                 {entityType === "subject" ? "Matière" : "Activité"}{" "}
                 sélectionnée:
               </p>
-              <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer"
-                    style={{ backgroundColor: selectedColor }}
-                    aria-label="Changer la couleur"
-                  />
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-3">
-                  <div className="space-y-3">
-                    <HexColorPicker
-                      color={selectedColor}
-                      onChange={handleColorChange}
+              <div className="flex items-center gap-2">
+                <Popover
+                  open={colorPickerOpen}
+                  onOpenChange={setColorPickerOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <button
+                      className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer"
+                      style={{ backgroundColor: selectedColor }}
+                      aria-label="Changer la couleur"
                     />
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      onClick={handleColorChangeComplete}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3">
+                    <div className="space-y-3">
+                      <HexColorPicker
+                        color={selectedColor}
+                        onChange={handleColorChange}
+                      />
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={handleColorChangeComplete}
+                      >
+                        Appliquer
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="w-8 h-8 flex items-center justify-center text-xl border rounded cursor-pointer hover:bg-muted"
+                      aria-label="Changer l'icône"
                     >
-                      Appliquer
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                      {selectedEntity.icon}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3">
+                    <IconPicker
+                      selectedIcon={selectedEntity.icon}
+                      onSelectIcon={handleIconSelect}
+                      onClose={() => setIconPickerOpen(false)}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <div className="flex items-center">
               <div
                 className="w-4 h-4 rounded-full mr-2"
                 style={{ backgroundColor: selectedEntity.color }}
               />
+              <span className="mr-2">{selectedEntity.icon}</span>
               <p>{selectedEntity.name}</p>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
