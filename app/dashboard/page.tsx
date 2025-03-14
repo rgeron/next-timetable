@@ -6,6 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardPage() {
-  // Cette page est vide car l'emploi du temps est maintenant géré par le layout
-  return <></>;
+  return null;
 }

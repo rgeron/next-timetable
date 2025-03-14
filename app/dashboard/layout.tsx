@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Plateforme de personnalisation d'emploi du temps",
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout() {
   return (
     <TimetableProvider>
       <DashboardClient />
