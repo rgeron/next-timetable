@@ -200,14 +200,6 @@ export function FileItPanel() {
                 } flex items-center`}
                 onClick={() => handleEntitySelect(entity.id)}
               >
-                <div
-                  className="w-4 h-4 rounded-full mr-2"
-                  style={{ backgroundColor: entity.color }}
-                />
-                <span className="mr-2">{entity.icon}</span>
-                <span className="mr-2 text-xs text-muted-foreground">
-                  {entity.shortName}
-                </span>
                 <span>{entity.name}</span>
               </div>
             ))}
@@ -283,11 +275,6 @@ export function FileItPanel() {
               </div>
             </div>
             <div className="flex items-center mb-3">
-              <div
-                className="w-4 h-4 rounded-full mr-2"
-                style={{ backgroundColor: selectedEntity.color }}
-              />
-              <span className="mr-2">{selectedEntity.icon}</span>
               <p>{selectedEntity.name}</p>
             </div>
 
