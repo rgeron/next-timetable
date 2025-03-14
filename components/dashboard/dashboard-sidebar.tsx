@@ -16,10 +16,19 @@ import { defaultTimeTableData, saveTimeTableData } from "@/lib/timetable";
 import { Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { ImportFile } from "./import-file";
+import { PersonalizationPanel } from "./personalization-panel";
+
+// Type for the selected cell
+type SelectedCell = {
+  dayId: number;
+  timeSlotId: number;
+} | null;
 
 export function DashboardSidebar(props: {
   currentStep: Step;
   onStepChange: (step: Step) => void;
+  selectedCell: SelectedCell;
+  onCellSelect: (cell: SelectedCell) => void;
 }) {
   const handleContinue = () => {
     const nextStep = getNextStep(props.currentStep);
@@ -35,12 +44,20 @@ export function DashboardSidebar(props: {
     }
   };
 
+  const handleCellDeselect = () => {
+    props.onCellSelect(null);
+  };
+
   return (
     <div className="w-1/3 flex-shrink-0 border-r bg-sidebar flex flex-col h-full">
       <div className="flex h-full flex-col">
         {/* Content based on current step - now scrollable */}
         <div className="flex-1 overflow-y-auto p-4 pr-2 custom-scrollbar">
-          {renderSidebarContent(props.currentStep)}
+          {renderSidebarContent(
+            props.currentStep,
+            props.selectedCell,
+            handleCellDeselect
+          )}
         </div>
 
         {/* Navigation buttons at the bottom - fixed position */}
@@ -50,7 +67,7 @@ export function DashboardSidebar(props: {
               <GoBackButton onClick={handleGoBack} />
             )}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 text-right">
             {!isLastStep(props.currentStep) && (
               <ContinueButton onClick={handleContinue} />
             )}
@@ -61,7 +78,11 @@ export function DashboardSidebar(props: {
   );
 }
 
-function renderSidebarContent(step: Step) {
+function renderSidebarContent(
+  step: Step,
+  selectedCell: SelectedCell,
+  onCellDeselect: () => void
+) {
   // Render different content based on the current step
   switch (step) {
     case "bienvenue":
@@ -132,11 +153,14 @@ function renderSidebarContent(step: Step) {
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Personnaliser</h2>
-          <p className="text-sm text-sidebar-foreground/80">
+          <p className="text-sm text-sidebar-foreground/80 mb-4">
             Personnalisez l&apos;apparence et les paramètres de votre emploi du
-            temps.
+            temps. Cliquez sur une case pour la personnaliser.
           </p>
-          {/* Personalization controls would go here */}
+          <PersonalizationPanel
+            selectedCell={selectedCell}
+            onCellDeselect={onCellDeselect}
+          />
         </div>
       );
 

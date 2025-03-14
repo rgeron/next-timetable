@@ -1,4 +1,4 @@
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { TimetableProvider } from "@/lib/timetable-context";
 import type { Metadata } from "next";
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <TimetableProvider>
-      <DashboardLayout>{children}</DashboardLayout>
+      <DashboardClient />
     </TimetableProvider>
   );
 }

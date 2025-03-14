@@ -1,10 +1,10 @@
 "use client";
 
+import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
+import { Timetable } from "@/components/dashboard/timetable";
 import { Step, STEPS } from "@/lib/step-navigation";
 import { useState } from "react";
-import { DashboardSidebar } from "./dashboard-sidebar";
-import { DashboardTopbar } from "./dashboard-topbar";
-import { Timetable } from "./timetable";
 
 // Type for the selected cell
 type SelectedCell = {
@@ -12,7 +12,7 @@ type SelectedCell = {
   timeSlotId: number;
 } | null;
 
-export function DashboardLayout(props: { children?: React.ReactNode }) {
+export function DashboardClient() {
   // State to keep track of the current step
   const [currentStep, setCurrentStep] = useState<Step>(STEPS[0]);
   // State to keep track of the selected cell for personalization
@@ -46,4 +46,4 @@ export function DashboardLayout(props: { children?: React.ReactNode }) {
       </div>
     </div>
   );
-}
+} 
