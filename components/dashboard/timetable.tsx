@@ -62,6 +62,16 @@ export function Timetable({
   const numDays = timetableData.days.length;
   const gridTemplateColumns = `100px repeat(${numDays}, 1fr)`;
 
+  // Function to check if two entries have the same subject/activity
+  const hasSameEntity = (
+    entry1?: ScheduleEntry | null,
+    entry2?: ScheduleEntry | null
+  ) => {
+    if (!entry1 || !entry2 || !entry1.entityId || !entry2.entityId)
+      return false;
+    return entry1.entityId === entry2.entityId;
+  };
+
   return (
     <div className="w-full p-4">
       <div className="mb-4 flex items-center justify-between">
@@ -108,7 +118,7 @@ export function Timetable({
           ))}
 
           {/* Time slots and schedule cells */}
-          {timetableData.timeSlots.map((timeSlot) => {
+          {timetableData.timeSlots.map((timeSlot, timeSlotIndex) => {
             const height = calculateSlotHeight(timeSlot.start, timeSlot.end);
 
             return (
@@ -132,6 +142,27 @@ export function Timetable({
                     timeSlot.id
                   );
 
+                  // Check if this entry continues from previous time slot
+                  const prevTimeSlot =
+                    timeSlotIndex > 0
+                      ? timetableData.timeSlots[timeSlotIndex - 1]
+                      : null;
+                  const prevEntry = prevTimeSlot
+                    ? getScheduleEntry(timetableData, day.id, prevTimeSlot.id)
+                    : null;
+
+                  // Check if this entry continues to next time slot
+                  const nextTimeSlot =
+                    timeSlotIndex < timetableData.timeSlots.length - 1
+                      ? timetableData.timeSlots[timeSlotIndex + 1]
+                      : null;
+                  const nextEntry = nextTimeSlot
+                    ? getScheduleEntry(timetableData, day.id, nextTimeSlot.id)
+                    : null;
+
+                  const continuesFromPrev = hasSameEntity(entry, prevEntry);
+                  const continuesToNext = hasSameEntity(entry, nextEntry);
+
                   return (
                     <ScheduleCell
                       key={`${day.id}-${timeSlot.id}`}
@@ -146,6 +177,8 @@ export function Timetable({
                         selectedCell?.timeSlotId === timeSlot.id
                       }
                       isPersonalizeStep={currentStep === "personnaliser"}
+                      continuesFromPrev={continuesFromPrev}
+                      continuesToNext={continuesToNext}
                     />
                   );
                 })}
@@ -167,6 +200,8 @@ function ScheduleCell({
   onCellSelect,
   isSelected,
   isPersonalizeStep,
+  continuesFromPrev,
+  continuesToNext,
 }: {
   entry?: ScheduleEntry | null;
   timetableData: TimeTableData;
@@ -176,6 +211,8 @@ function ScheduleCell({
   onCellSelect: (cell: SelectedCell) => void;
   isSelected: boolean;
   isPersonalizeStep: boolean;
+  continuesFromPrev?: boolean;
+  continuesToNext?: boolean;
 }) {
   const { addToTimetableSlot } = useTimetable();
 
@@ -258,9 +295,12 @@ function ScheduleCell({
       </div>
     ) : null;
 
+  // Determine border classes based on continuity
+  const borderClasses = `border-l ${!continuesToNext ? "border-b" : ""}`;
+
   return (
     <div
-      className={`p-2 border-b border-l hover:bg-opacity-90 transition-colors cursor-pointer ${
+      className={`p-2 ${borderClasses} hover:bg-opacity-90 transition-colors cursor-pointer ${
         isSelected ? "ring-2 ring-primary" : ""
       }`}
       style={{
@@ -271,17 +311,21 @@ function ScheduleCell({
       onClick={handleCellClick}
     >
       <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between">
-          <div className="font-medium text-sm">{entity.shortName}</div>
-          <div className="text-lg">{entity.icon}</div>
-        </div>
+        {/* Only show subject name and icon if this is the first cell in a sequence */}
+        {!continuesFromPrev && (
+          <div className="flex items-center justify-between">
+            <div className="font-medium text-sm">{entity.shortName}</div>
+            <div className="text-lg">{entity.icon}</div>
+          </div>
+        )}
 
-        {entry.room && (
+        {/* Always show room info */}
+        {entry.room && !continuesFromPrev && (
           <div className="text-xs mt-1 opacity-80">Salle: {entry.room}</div>
         )}
 
-        {/* Show teacher info only if enabled */}
-        {teacherInfo}
+        {/* Show teacher info only if enabled and not continuing from previous */}
+        {!continuesFromPrev && teacherInfo}
       </div>
     </div>
   );
