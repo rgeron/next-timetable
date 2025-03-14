@@ -1,5 +1,6 @@
 "use client";
 
+import { FileItPanel } from "@/components/file-it/file-it-panel";
 import { ContinueButton } from "@/components/navigation/continue-button";
 import { GoBackButton } from "@/components/navigation/go-back-button";
 import { TimelineEditor } from "@/components/timeline/timeline-editor";
@@ -14,7 +15,6 @@ import {
 import { defaultTimeTableData, saveTimeTableData } from "@/lib/timetable";
 import { Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { FileItSidebar } from "../file-it/file-it-panel";
 import { ImportFile } from "./import-file";
 
 export function DashboardSidebar(props: {
@@ -124,7 +124,7 @@ function renderSidebarContent(step: Step) {
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Remplir les créneaux</h2>
-          <FileItSidebar />
+          <FileItPanel />
         </div>
       );
 
