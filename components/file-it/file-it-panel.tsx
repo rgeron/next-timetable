@@ -8,8 +8,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useTimetable } from "@/lib/timetable-context";
+import { Eraser } from "lucide-react";
 import { useEffect, useState } from "react";
 import { HexColorPicker } from "react-colorful";
+import { toast } from "sonner";
 import { IconPicker } from "./icon-picker";
 
 // Custom event for timetable slot selection
@@ -40,6 +42,7 @@ export function FileItPanel() {
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [shortName, setShortName] = useState("");
   const [isEditingShortName, setIsEditingShortName] = useState(false);
+  const [eraserMode, setEraserMode] = useState(false);
 
   useEffect(() => {
     // Reset search when entity type changes
@@ -94,6 +97,7 @@ export function FileItPanel() {
     setSelectedEntityId(id);
     setSearchTerm("");
     setShowAddNew(false);
+    setEraserMode(false);
   };
 
   const handleAddNewEntity = () => {
@@ -146,6 +150,57 @@ export function FileItPanel() {
         )
       : [];
 
+  const toggleEraserMode = () => {
+    setEraserMode(!eraserMode);
+    setSelectedEntityId("");
+    setSearchTerm("");
+    setShowAddNew(false);
+
+    if (!eraserMode) {
+      toast.info("Mode effaceur activé. Cliquez sur un créneau pour le vider.");
+    } else {
+      toast.info("Mode effaceur désactivé.");
+    }
+  };
+
+  // Add a custom event listener for timetable slot selection when in eraser mode
+  useEffect(() => {
+    const handleSlotSelected = (
+      event: CustomEvent<{ dayId: number; timeSlotId: number }>
+    ) => {
+      if (eraserMode) {
+        const { dayId, timeSlotId } = event.detail;
+
+        if (timetableData) {
+          // Clear the slot by setting entityId and type to empty strings
+          const updatedData = structuredClone(timetableData);
+          const entryIndex = updatedData.schedule.findIndex(
+            (entry) => entry.dayId === dayId && entry.timeSlotId === timeSlotId
+          );
+
+          if (entryIndex !== -1) {
+            updatedData.schedule[entryIndex].entityId = "";
+            updatedData.schedule[entryIndex].type = "";
+
+            // Save the updated data
+            localStorage.setItem("timetable-data", JSON.stringify(updatedData));
+
+            // Trigger a custom event to notify of timetable data change
+            window.dispatchEvent(new Event("timetableDataChanged"));
+
+            toast.success("Créneau effacé");
+          }
+        }
+      }
+    };
+
+    window.addEventListener("timetableSlotSelected", handleSlotSelected);
+
+    return () => {
+      window.removeEventListener("timetableSlotSelected", handleSlotSelected);
+    };
+  }, [eraserMode, timetableData]);
+
   if (isLoading || !timetableData) {
     return (
       <div className="p-4 flex items-center justify-center h-[200px]">
@@ -169,6 +224,7 @@ export function FileItPanel() {
           variant={entityType === "subject" ? "default" : "outline"}
           onClick={() => setEntityType("subject")}
           className="flex-1"
+          disabled={eraserMode}
         >
           Matière
         </Button>
@@ -176,18 +232,32 @@ export function FileItPanel() {
           variant={entityType === "activity" ? "default" : "outline"}
           onClick={() => setEntityType("activity")}
           className="flex-1"
+          disabled={eraserMode}
         >
           Activité
+        </Button>
+        <Button
+          variant={eraserMode ? "default" : "outline"}
+          onClick={toggleEraserMode}
+          className="w-10 h-10 p-0 flex items-center justify-center"
+          title="Mode effaceur"
+        >
+          <Eraser className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="space-y-2">
         <Input
-          placeholder={`Rechercher une ${
-            entityType === "subject" ? "matière" : "activité"
-          }...`}
+          placeholder={
+            eraserMode
+              ? "Mode effaceur activé"
+              : `Rechercher une ${
+                  entityType === "subject" ? "matière" : "activité"
+                }...`
+          }
           value={searchTerm}
           onChange={handleSearchChange}
+          disabled={eraserMode}
         />
 
         {searchTerm && filteredEntities.length > 0 && (
@@ -219,7 +289,7 @@ export function FileItPanel() {
           </div>
         )}
 
-        {selectedEntityId && selectedEntity && (
+        {selectedEntityId && selectedEntity && !eraserMode && (
           <div className="mt-4 p-3 border rounded-md bg-muted/30">
             <div className="flex items-center justify-between mb-2">
               <p className="font-medium">
@@ -330,6 +400,17 @@ export function FileItPanel() {
             <p className="text-sm text-muted-foreground mt-2">
               Cliquez sur un créneau de l&apos;emploi du temps pour y ajouter
               cette {entityType === "subject" ? "matière" : "activité"}.
+            </p>
+          </div>
+        )}
+
+        {eraserMode && (
+          <div className="mt-4 p-3 border rounded-md bg-muted/30">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium">Mode effaceur activé</p>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Cliquez sur un créneau de l&apos;emploi du temps pour le vider.
             </p>
           </div>
         )}

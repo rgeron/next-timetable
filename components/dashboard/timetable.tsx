@@ -184,6 +184,14 @@ function ScheduleCell({
       // In personalize step, select the cell for customization
       onCellSelect({ dayId, timeSlotId });
     } else {
+      // Dispatch a custom event for timetable slot selection
+      // This will be used by the eraser mode in FileItPanel
+      window.dispatchEvent(
+        new CustomEvent("timetableSlotSelected", {
+          detail: { dayId, timeSlotId },
+        })
+      );
+
       // In other steps, add a subject/activity to the cell
       console.log("Cell clicked:", {
         dayId,
