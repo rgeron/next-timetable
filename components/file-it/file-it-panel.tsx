@@ -7,6 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { useTimetable } from "@/lib/timetable-context";
 import { Eraser } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -33,6 +34,10 @@ export function FileItPanel() {
     updateEntityColor,
     updateEntityIcon,
     updateEntityShortName,
+    activeTag,
+    setActiveTag,
+    isTagModeActive,
+    setIsTagModeActive,
   } = useTimetable();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -175,6 +180,8 @@ export function FileItPanel() {
     setSelectedEntityId("");
     setSearchTerm("");
     setShowAddNew(false);
+    setIsTagModeActive(false);
+    setActiveTag(null);
 
     if (!eraserMode) {
       toast.info("Mode effaceur activé. Cliquez sur un créneau pour le vider.");
@@ -183,34 +190,54 @@ export function FileItPanel() {
     }
   };
 
-  // Add a custom event listener for timetable slot selection when in eraser mode
+  const handleQuickAction = (actionType: "récréation" | "pause") => {
+    // Check if timetableData exists
+    if (!timetableData) {
+      toast.error("Données de l'emploi du temps non disponibles");
+      return;
+    }
+
+    // Set tag mode
+    setSelectedEntityId("");
+    setEntityType("activity"); // Reset to activity type but we won't use it
+    setEraserMode(false);
+    setActiveTag(actionType);
+    setIsTagModeActive(true);
+
+    toast.success(
+      `Mode "${actionType}" activé. Cliquez sur les créneaux pour ajouter "${actionType}".`
+    );
+  };
+
+  // Add a custom event listener for timetable slot selection when in tag mode or eraser mode
   useEffect(() => {
     const handleSlotSelected = (
       event: CustomEvent<{ dayId: number; timeSlotId: number }>
     ) => {
+      if (!timetableData) return;
+
+      const { dayId, timeSlotId } = event.detail;
+      const updatedData = structuredClone(timetableData);
+      const entryIndex = updatedData.schedule.findIndex(
+        (entry) => entry.dayId === dayId && entry.timeSlotId === timeSlotId
+      );
+
+      if (entryIndex === -1) return;
+
+      // Handle eraser mode
       if (eraserMode) {
-        const { dayId, timeSlotId } = event.detail;
+        updatedData.schedule[entryIndex].entityId = "";
+        updatedData.schedule[entryIndex].type = "";
+        updatedData.schedule[entryIndex].tag = null;
 
-        if (timetableData) {
-          // Clear the slot by setting entityId and type to empty strings
-          const updatedData = structuredClone(timetableData);
-          const entryIndex = updatedData.schedule.findIndex(
-            (entry) => entry.dayId === dayId && entry.timeSlotId === timeSlotId
-          );
+        // Save the updated data
+        localStorage.setItem("timetable-data", JSON.stringify(updatedData));
 
-          if (entryIndex !== -1) {
-            updatedData.schedule[entryIndex].entityId = "";
-            updatedData.schedule[entryIndex].type = "";
+        // Trigger a custom event to notify of timetable data change
+        window.dispatchEvent(new Event("timetableDataChanged"));
 
-            // Save the updated data
-            localStorage.setItem("timetable-data", JSON.stringify(updatedData));
-
-            // Trigger a custom event to notify of timetable data change
-            window.dispatchEvent(new Event("timetableDataChanged"));
-
-            toast.success("Créneau effacé");
-          }
-        }
+        toast.success("Créneau effacé");
+        return;
       }
     };
 
@@ -220,6 +247,13 @@ export function FileItPanel() {
       window.removeEventListener("timetableSlotSelected", handleSlotSelected);
     };
   }, [eraserMode, timetableData]);
+
+  // Effect to reset tag mode when switching to eraser mode or selecting an entity
+  useEffect(() => {
+    if (eraserMode || selectedEntityId) {
+      setIsTagModeActive(false);
+    }
+  }, [eraserMode, selectedEntityId, setIsTagModeActive]);
 
   if (isLoading || !timetableData) {
     return (
@@ -242,7 +276,11 @@ export function FileItPanel() {
       <div className="flex gap-2">
         <Button
           variant={entityType === "subject" ? "default" : "outline"}
-          onClick={() => setEntityType("subject")}
+          onClick={() => {
+            setEntityType("subject");
+            setIsTagModeActive(false);
+            setActiveTag(null);
+          }}
           className="flex-1"
           disabled={eraserMode}
         >
@@ -250,7 +288,11 @@ export function FileItPanel() {
         </Button>
         <Button
           variant={entityType === "activity" ? "default" : "outline"}
-          onClick={() => setEntityType("activity")}
+          onClick={() => {
+            setEntityType("activity");
+            setIsTagModeActive(false);
+            setActiveTag(null);
+          }}
           className="flex-1"
           disabled={eraserMode}
         >
@@ -448,6 +490,36 @@ export function FileItPanel() {
             </p>
           </div>
         )}
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Quick actions for break/recess - moved to bottom */}
+      <div className="flex gap-2">
+        <Button
+          variant={
+            activeTag === "récréation" && isTagModeActive
+              ? "default"
+              : "outline"
+          }
+          size="sm"
+          className="flex-1"
+          onClick={() => handleQuickAction("récréation")}
+          disabled={eraserMode}
+        >
+          Récréation
+        </Button>
+        <Button
+          variant={
+            activeTag === "pause" && isTagModeActive ? "default" : "outline"
+          }
+          size="sm"
+          className="flex-1"
+          onClick={() => handleQuickAction("pause")}
+          disabled={eraserMode}
+        >
+          Pause
+        </Button>
       </div>
     </div>
   );

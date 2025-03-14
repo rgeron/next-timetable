@@ -39,6 +39,10 @@ type TimetableContextType = {
     type: "subject" | "activity",
     shortName: string
   ) => void;
+  activeTag: "récréation" | "pause" | null;
+  setActiveTag: (tag: "récréation" | "pause" | null) => void;
+  isTagModeActive: boolean;
+  setIsTagModeActive: (active: boolean) => void;
 };
 
 const TimetableContext = createContext<TimetableContextType | undefined>(
@@ -54,6 +58,10 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
   const [entityType, setEntityType] = useState<"subject" | "activity">(
     "subject"
   );
+  const [activeTag, setActiveTag] = useState<"récréation" | "pause" | null>(
+    null
+  );
+  const [isTagModeActive, setIsTagModeActive] = useState(false);
 
   useEffect(() => {
     // Load timetable data from localStorage
@@ -84,8 +92,40 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToTimetableSlot = (dayId: number, timeSlotId: number) => {
-    if (!timetableData || !selectedEntityId) {
-      console.log("Cannot add to timetable: no data or no selected entity");
+    if (!timetableData) {
+      console.log("Cannot add to timetable: no data");
+      return;
+    }
+
+    // Check if we're in tag mode
+    if (activeTag && isTagModeActive) {
+      console.log("Adding tag to timetable slot:", {
+        dayId,
+        timeSlotId,
+        tag: activeTag,
+      });
+
+      const updatedData = updateScheduleEntry(
+        timetableData,
+        dayId,
+        timeSlotId,
+        {
+          type: "",
+          entityId: "",
+          tag: activeTag,
+        }
+      );
+
+      setTimetableData(updatedData);
+
+      // Trigger a custom event to notify of timetable data change
+      window.dispatchEvent(new Event("timetableDataChanged"));
+      return;
+    }
+
+    // Normal entity mode
+    if (!selectedEntityId) {
+      console.log("Cannot add to timetable: no selected entity");
       return;
     }
 
@@ -99,6 +139,7 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     const updatedData = updateScheduleEntry(timetableData, dayId, timeSlotId, {
       type: entityType,
       entityId: selectedEntityId,
+      tag: null, // Clear any existing tag
     });
 
     setTimetableData(updatedData);
@@ -277,6 +318,10 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     updateEntityColor,
     updateEntityIcon,
     updateEntityShortName,
+    activeTag,
+    setActiveTag,
+    isTagModeActive,
+    setIsTagModeActive,
   };
 
   return (

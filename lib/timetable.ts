@@ -37,6 +37,7 @@ export type ScheduleEntry = {
   notes: string;
   weekType: string | null;
   split: Split;
+  tag?: "récréation" | "pause" | null;
 };
 
 export type TimeTableData = {
@@ -196,6 +197,7 @@ export const defaultTimeTableData: TimeTableData = {
     notes: "",
     weekType: null,
     split: { enabled: false },
+    tag: null,
   })),
 
   specialNotes: [],

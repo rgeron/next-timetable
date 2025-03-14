@@ -249,9 +249,17 @@ function ScheduleCell({
         data-schedule-id={entry?.id || ""}
         onClick={handleCellClick}
       >
-        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-          -
-        </div>
+        {entry?.tag ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="px-2 py-1 bg-muted rounded-md text-sm font-medium">
+              {entry.tag}
+            </span>
+          </div>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+            -
+          </div>
+        )}
       </div>
     );
   }
