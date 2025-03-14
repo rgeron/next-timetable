@@ -242,21 +242,21 @@ function ScheduleCell({
   if (!entry || !entry.entityId) {
     return (
       <div
-        className={`p-2 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer ${
+        className={`p-0 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer ${
           isSelected ? "ring-2 ring-primary" : ""
-        }`}
+        } relative overflow-hidden`}
         style={{ height: `${height}px` }}
         data-schedule-id={entry?.id || ""}
         onClick={handleCellClick}
       >
         {entry?.tag ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="px-2 py-1 bg-muted rounded-md text-sm font-medium">
+          <div className="w-full h-full p-2 flex items-center justify-center">
+            <div className="px-2 py-1 bg-muted rounded-md text-sm font-medium">
               {entry.tag}
-            </span>
+            </div>
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+          <div className="w-full h-full p-2 flex items-center justify-center text-muted-foreground text-sm">
             -
           </div>
         )}
@@ -269,14 +269,14 @@ function ScheduleCell({
   if (!entity) {
     return (
       <div
-        className={`p-2 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer ${
+        className={`p-0 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer ${
           isSelected ? "ring-2 ring-primary" : ""
-        }`}
+        } relative overflow-hidden`}
         style={{ height: `${height}px` }}
         data-schedule-id={entry.id}
         onClick={handleCellClick}
       >
-        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+        <div className="w-full h-full p-2 flex items-center justify-center text-muted-foreground text-sm">
           {entry.entityId}
         </div>
       </div>
@@ -308,32 +308,45 @@ function ScheduleCell({
 
   return (
     <div
-      className={`p-2 ${borderClasses} hover:bg-opacity-90 transition-colors cursor-pointer ${
+      className={`p-0 ${borderClasses} hover:bg-opacity-90 transition-colors cursor-pointer ${
         isSelected ? "ring-2 ring-primary" : ""
-      }`}
+      } relative overflow-hidden`}
       style={{
         height: `${height}px`,
-        backgroundColor: entity.color || "#f0f0f0",
       }}
       data-schedule-id={entry.id}
       onClick={handleCellClick}
     >
-      <div className="flex flex-col h-full">
-        {/* Only show subject name and icon if this is the first cell in a sequence */}
-        {!continuesFromPrev && (
-          <div className="flex items-center justify-between">
-            <div className="font-medium text-sm">{entity.shortName}</div>
-            <div className="text-lg">{entity.icon}</div>
-          </div>
-        )}
+      {/* Colored sidebar */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1.5"
+        style={{ backgroundColor: entity.color || "#f0f0f0" }}
+      ></div>
 
-        {/* Always show room info */}
-        {entry.room && !continuesFromPrev && (
-          <div className="text-xs mt-1 opacity-80">Salle: {entry.room}</div>
-        )}
+      {/* Main content with semi-transparent background */}
+      <div
+        className="h-full w-full p-2 pl-3"
+        style={{
+          backgroundColor: entity.color ? `${entity.color}25` : "#f0f0f0",
+        }}
+      >
+        <div className="flex flex-col h-full">
+          {/* Only show subject name and icon if this is the first cell in a sequence */}
+          {!continuesFromPrev && (
+            <div className="flex items-center justify-between">
+              <div className="font-medium text-sm">{entity.shortName}</div>
+              <div className="text-lg">{entity.icon}</div>
+            </div>
+          )}
 
-        {/* Show teacher info only if enabled and not continuing from previous */}
-        {!continuesFromPrev && teacherInfo}
+          {/* Always show room info */}
+          {entry.room && !continuesFromPrev && (
+            <div className="text-xs mt-1 opacity-80">Salle: {entry.room}</div>
+          )}
+
+          {/* Show teacher info only if enabled and not continuing from previous */}
+          {!continuesFromPrev && teacherInfo}
+        </div>
       </div>
     </div>
   );
