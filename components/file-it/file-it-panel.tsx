@@ -30,6 +30,7 @@ export function FileItPanel() {
     addNewEntity,
     updateEntityColor,
     updateEntityIcon,
+    updateEntityShortName,
   } = useTimetable();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,6 +38,8 @@ export function FileItPanel() {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
+  const [shortName, setShortName] = useState("");
+  const [isEditingShortName, setIsEditingShortName] = useState(false);
 
   useEffect(() => {
     // Reset search when entity type changes
@@ -68,7 +71,7 @@ export function FileItPanel() {
   }, [searchTerm, entityType, timetableData]);
 
   useEffect(() => {
-    // Update selected color when entity changes
+    // Update selected color and shortName when entity changes
     if (selectedEntityId && timetableData) {
       const entity =
         entityType === "subject"
@@ -77,6 +80,7 @@ export function FileItPanel() {
 
       if (entity) {
         setSelectedColor(entity.color);
+        setShortName(entity.shortName);
       }
     }
   }, [selectedEntityId, entityType, timetableData]);
@@ -118,6 +122,17 @@ export function FileItPanel() {
     if (selectedEntityId && timetableData) {
       updateEntityIcon(selectedEntityId, entityType, icon);
       setIconPickerOpen(false);
+    }
+  };
+
+  const handleShortNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setShortName(e.target.value);
+  };
+
+  const handleShortNameSave = () => {
+    if (selectedEntityId && timetableData && shortName.trim()) {
+      updateEntityShortName(selectedEntityId, entityType, shortName.trim());
+      setIsEditingShortName(false);
     }
   };
 
@@ -190,7 +205,10 @@ export function FileItPanel() {
                   style={{ backgroundColor: entity.color }}
                 />
                 <span className="mr-2">{entity.icon}</span>
-                {entity.name}
+                <span className="mr-2 text-xs text-muted-foreground">
+                  {entity.shortName}
+                </span>
+                <span>{entity.name}</span>
               </div>
             ))}
           </div>
@@ -264,7 +282,7 @@ export function FileItPanel() {
                 </Popover>
               </div>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center mb-3">
               <div
                 className="w-4 h-4 rounded-full mr-2"
                 style={{ backgroundColor: selectedEntity.color }}
@@ -272,6 +290,43 @@ export function FileItPanel() {
               <span className="mr-2">{selectedEntity.icon}</span>
               <p>{selectedEntity.name}</p>
             </div>
+
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium">Abréviation:</label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditingShortName(!isEditingShortName)}
+                  className="h-6 px-2"
+                >
+                  {isEditingShortName ? "Annuler" : "Modifier"}
+                </Button>
+              </div>
+              {isEditingShortName ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={shortName}
+                    onChange={handleShortNameChange}
+                    placeholder="Abréviation"
+                    maxLength={10}
+                    className="text-sm"
+                  />
+                  <Button size="sm" onClick={handleShortNameSave}>
+                    Enregistrer
+                  </Button>
+                </div>
+              ) : (
+                <div className="p-2 bg-muted/50 rounded text-sm">
+                  {selectedEntity.shortName}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                L&apos;abréviation est utilisée dans l&apos;emploi du temps pour
+                économiser de l&apos;espace.
+              </p>
+            </div>
+
             <p className="text-sm text-muted-foreground mt-2">
               Cliquez sur un créneau de l&apos;emploi du temps pour y ajouter
               cette {entityType === "subject" ? "matière" : "activité"}.
