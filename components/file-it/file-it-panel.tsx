@@ -200,6 +200,14 @@ export function FileItPanel() {
                 } flex items-center`}
                 onClick={() => handleEntitySelect(entity.id)}
               >
+                <div
+                  className="w-4 h-4 rounded-full mr-2"
+                  style={{ backgroundColor: entity.color }}
+                />
+                <span className="mr-2">{entity.icon}</span>
+                <span className="mr-2 text-xs text-muted-foreground">
+                  {entity.shortName}
+                </span>
                 <span>{entity.name}</span>
               </div>
             ))}
@@ -275,37 +283,55 @@ export function FileItPanel() {
               </div>
             </div>
             <div className="flex items-center mb-3">
+              <div
+                className="w-4 h-4 rounded-full mr-2"
+                style={{ backgroundColor: selectedEntity.color }}
+              />
+              <span className="mr-2">{selectedEntity.icon}</span>
               <p>{selectedEntity.name}</p>
             </div>
 
             <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium">Abréviation:</label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditingShortName(!isEditingShortName)}
-                  className="h-6 px-2"
-                >
-                  {isEditingShortName ? "Annuler" : "Modifier"}
-                </Button>
-              </div>
               {isEditingShortName ? (
-                <div className="flex gap-2">
-                  <Input
-                    value={shortName}
-                    onChange={handleShortNameChange}
-                    placeholder="Abréviation"
-                    maxLength={10}
-                    className="text-sm"
-                  />
-                  <Button size="sm" onClick={handleShortNameSave}>
-                    Enregistrer
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Abréviation:</label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingShortName(false)}
+                      className="h-6 px-2"
+                    >
+                      Annuler
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={shortName}
+                      onChange={handleShortNameChange}
+                      placeholder="Abréviation"
+                      maxLength={10}
+                      className="text-sm"
+                    />
+                    <Button size="sm" onClick={handleShortNameSave}>
+                      Enregistrer
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <div className="p-2 bg-muted/50 rounded text-sm">
-                  {selectedEntity.shortName}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Abréviation:</label>
+                  <div className="flex-1 p-2 bg-muted/50 rounded text-sm">
+                    {selectedEntity.shortName}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditingShortName(true)}
+                    className="h-6 px-2 shrink-0"
+                  >
+                    Modifier
+                  </Button>
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-1">
