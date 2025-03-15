@@ -149,10 +149,6 @@ function renderSidebarContent(
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Personnaliser</h2>
-          <p className="text-sm text-sidebar-foreground/80 mb-4">
-            Personnalisez l&apos;apparence et les paramètres de votre emploi du
-            temps. Cliquez sur une case pour la personnaliser.
-          </p>
           <PersonalizationPanel
             selectedCell={selectedCell}
             onCellDeselect={onCellDeselect}

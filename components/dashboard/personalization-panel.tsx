@@ -249,7 +249,7 @@ export function PersonalizationPanel({
       notes = `ShowTeacher: ${showTeacher}\n${notes}`;
 
       // Update the entry
-      const updatedData = updateScheduleEntry(
+      updateScheduleEntry(
         timetableData,
         selectedCell.dayId,
         selectedCell.timeSlotId,
@@ -392,98 +392,105 @@ export function PersonalizationPanel({
             </Button>
           </div>
 
-          <Tabs defaultValue="appearance">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="appearance">
-                <Palette className="h-4 w-4 mr-2" />
-                Apparence
-              </TabsTrigger>
-              <TabsTrigger value="teacher">
-                <User className="h-4 w-4 mr-2" />
-                Professeur
-              </TabsTrigger>
-              <TabsTrigger value="room">
-                <MapPin className="h-4 w-4 mr-2" />
-                Salle
-              </TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 gap-6 pt-2">
+            {/* Appearance Section */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Palette className="h-4 w-4" />
+                <span>Apparence</span>
+              </div>
 
-            <TabsContent value="appearance" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="cell-color">Couleur</Label>
-                <div className="flex items-center gap-2">
-                  <ColorPicker
-                    color={selectedColor}
-                    onChange={handleColorChange}
-                    onChangeComplete={saveCellSettings}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cell-color">Couleur</Label>
+                  <div className="flex items-center gap-2">
+                    <ColorPicker
+                      color={selectedColor}
+                      onChange={handleColorChange}
+                      onChangeComplete={saveCellSettings}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cell-icon">Icône</Label>
+                  <div className="flex items-center gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-10 h-10 p-0 flex items-center justify-center"
+                        >
+                          {selectedIcon ? (
+                            <span className="text-xl">{selectedIcon}</span>
+                          ) : (
+                            <Palette className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <IconPicker
+                          selectedIcon={selectedIcon}
+                          onSelectIcon={(icon) => {
+                            setSelectedIcon(icon);
+                            setIconModified(true);
+                          }}
+                          onClose={() => {}}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Teacher Section */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <User className="h-4 w-4" />
+                <span>Professeur</span>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="teacher-name">Nom du professeur</Label>
+                  <Input
+                    id="teacher-name"
+                    value={teacherName}
+                    onChange={handleTeacherNameChange}
+                    placeholder="Entrez le nom du professeur"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cell-icon">Icône</Label>
-                <div className="flex items-center gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-10 h-10 p-0 flex items-center justify-center"
-                      >
-                        {selectedIcon ? (
-                          <span className="text-xl">{selectedIcon}</span>
-                        ) : (
-                          <Palette className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
-                      <IconPicker
-                        selectedIcon={selectedIcon}
-                        onSelectIcon={(icon) => {
-                          setSelectedIcon(icon);
-                          setIconModified(true);
-                        }}
-                        onClose={() => {}}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="show-teacher"
+                    checked={showTeacher}
+                    onCheckedChange={handleShowTeacherToggle}
+                  />
+                  <Label htmlFor="show-teacher">Afficher le professeur</Label>
                 </div>
-              </div>
-            </TabsContent>
 
-            <TabsContent value="teacher" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="teacher-name">Nom du professeur</Label>
-                <Input
-                  id="teacher-name"
-                  value={teacherName}
-                  onChange={handleTeacherNameChange}
-                  placeholder="Entrez le nom du professeur"
-                />
+                {currentEntityId && teacherName && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={applyTeacherToAllInstances}
+                  >
+                    Appliquer à toutes les instances
+                  </Button>
+                )}
               </div>
+            </div>
 
-              <div className="flex items-center space-x-2 pt-2">
-                <Switch
-                  id="show-teacher"
-                  checked={showTeacher}
-                  onCheckedChange={handleShowTeacherToggle}
-                />
-                <Label htmlFor="show-teacher">Afficher le professeur</Label>
+            {/* Room Section */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>Salle</span>
               </div>
 
-              {currentEntityId && teacherName && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
-                  onClick={applyTeacherToAllInstances}
-                >
-                  Appliquer à toutes les instances de cette matière
-                </Button>
-              )}
-            </TabsContent>
-
-            <TabsContent value="room" className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="room-number">Numéro de salle</Label>
                 <Input
@@ -493,8 +500,8 @@ export function PersonalizationPanel({
                   placeholder="Entrez le numéro de salle"
                 />
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
 
           <Button className="w-full" onClick={saveCellSettings}>
             Enregistrer les modifications
