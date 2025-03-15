@@ -265,35 +265,13 @@ export function PersonalizationPanel({
           ? "subject"
           : "activity";
 
-        // Mettre à jour la couleur et l'icône dans le contexte
+        // Update color and icon in the context
         updateEntityColor(entry.entityId, entityType, selectedColor);
         updateEntityIcon(entry.entityId, entityType, selectedIcon);
 
-        // Mettre à jour directement l'entité dans les données locales
-        if (entityType === "subject") {
-          const subjectIndex = updatedData.subjects.findIndex(
-            (s) => s.id === entry.entityId
-          );
-          if (subjectIndex !== -1) {
-            updatedData.subjects[subjectIndex].color = selectedColor;
-            updatedData.subjects[subjectIndex].icon = selectedIcon;
-          }
-        } else {
-          const activityIndex = updatedData.activities.findIndex(
-            (a) => a.id === entry.entityId
-          );
-          if (activityIndex !== -1) {
-            updatedData.activities[activityIndex].color = selectedColor;
-            updatedData.activities[activityIndex].icon = selectedIcon;
-          }
-        }
+        // No need to manually update the data here as updateEntityColor and updateEntityIcon
+        // already save the data to localStorage and update the context
       }
-
-      // Sauvegarder les données mises à jour
-      saveTimeTableData(updatedData);
-
-      // Déclencher un événement pour notifier du changement
-      window.dispatchEvent(new Event("timetableDataChanged"));
 
       toast.success("Modifications enregistrées");
 
@@ -376,6 +354,33 @@ export function PersonalizationPanel({
     setShowTeacher(checked);
   };
 
+  // Handle color change
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+
+    // Apply color change immediately if we have an entity selected
+    if (currentEntityId && timetableData) {
+      const entityType = currentEntityId.startsWith("s-")
+        ? "subject"
+        : "activity";
+      updateEntityColor(currentEntityId, entityType, color);
+    }
+  };
+
+  // Handle border color change
+  const handleBorderColorChange = (color: string) => {
+    setGlobalSettings({
+      ...globalSettings,
+      borderColor: color,
+    });
+
+    // Apply border color change immediately
+    document.documentElement.style.setProperty(
+      "--timetable-border-color",
+      color
+    );
+  };
+
   return (
     <div className="space-y-6">
       {selectedCell ? (
@@ -409,7 +414,8 @@ export function PersonalizationPanel({
                 <div className="flex items-center gap-2">
                   <ColorPicker
                     color={selectedColor}
-                    onChange={setSelectedColor}
+                    onChange={handleColorChange}
+                    onChangeComplete={saveCellSettings}
                   />
                 </div>
               </div>
@@ -543,12 +549,8 @@ export function PersonalizationPanel({
                 <div className="flex items-center gap-2">
                   <ColorPicker
                     color={globalSettings.borderColor}
-                    onChange={(color) =>
-                      setGlobalSettings({
-                        ...globalSettings,
-                        borderColor: color,
-                      })
-                    }
+                    onChange={handleBorderColorChange}
+                    onChangeComplete={saveGlobalSettings}
                   />
                 </div>
               </div>
