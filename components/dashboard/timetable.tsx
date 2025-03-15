@@ -325,9 +325,9 @@ function ScheduleCell({
     <div
       className={`${
         isA4Preview ? "text-[0.65rem]" : "text-xs"
-      } mt-1.5 font-medium inline-flex items-center rounded-full px-2 py-0.5`}
+      } mt-0.5 font-medium inline-flex items-center rounded-full px-2 py-0.5`}
       style={{
-        backgroundColor: `${entity.color}15`,
+        background: `linear-gradient(135deg, ${entity.color}30, ${entity.color}15)`,
         color: entity.color,
       }}
     >
@@ -394,9 +394,9 @@ function ScheduleCell({
                 <div
                   className={`${
                     isA4Preview ? "text-[0.65rem]" : "text-xs"
-                  } font-medium inline-flex items-center rounded-full px-2 py-0.5`}
+                  } mt-0.5 font-medium inline-flex items-center rounded-full px-2 py-0.5`}
                   style={{
-                    backgroundColor: `${entity.color}15`,
+                    background: `linear-gradient(135deg, ${entity.color}15, ${entity.color}30)`,
                     color: entity.color,
                   }}
                 >
