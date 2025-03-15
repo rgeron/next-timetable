@@ -156,17 +156,6 @@ function renderSidebarContent(
         </div>
       );
 
-    case "imprimer":
-      return (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Imprimer</h2>
-          <p className="text-sm text-sidebar-foreground/80">
-            Exportez ou imprimez votre emploi du temps finalisé.
-          </p>
-          {/* Print/Export controls would go here */}
-        </div>
-      );
-
     default:
       return <div>Sélectionnez une étape pour continuer</div>;
   }

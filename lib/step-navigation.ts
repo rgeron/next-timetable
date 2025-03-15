@@ -7,7 +7,6 @@ export const STEPS = [
   "horaires",
   "organisation",
   "personnaliser",
-  "imprimer",
 ] as const;
 
 export type Step = (typeof STEPS)[number];

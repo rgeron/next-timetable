@@ -1,6 +1,5 @@
 "use client";
 
-import { Toggle } from "@/components/ui/toggle";
 import {
   getEntityById,
   getScheduleEntry,
@@ -8,100 +7,19 @@ import {
   type TimeTableData,
 } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
-import { MapPin, Printer, User } from "lucide-react";
-import React, { useEffect, useState } from "react";
-
-// Print-specific styles for landscape A4
-const printStyles = `
-@media print {
-  @page {
-    size: A4 landscape;
-    margin: 10mm;
-  }
-  
-  body {
-    margin: 0;
-    padding: 0;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  
-  .no-print {
-    display: none !important;
-  }
-  
-  .print-only {
-    display: block !important;
-  }
-  
-  .timetable-container {
-    width: 100% !important;
-    height: auto !important;
-    transform: none !important;
-    font-size: 10pt !important;
-    box-shadow: none !important;
-    border: 1px solid #ddd !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  
-  .timetable-grid {
-    width: 100% !important;
-  }
-  
-  .timetable-cell {
-    page-break-inside: avoid;
-  }
-  
-  .timetable-header {
-    background-color: #f5f5f5 !important;
-    font-weight: bold !important;
-    font-size: 11pt !important;
-  }
-  
-  .timetable-time {
-    background-color: #f9f9f9 !important;
-    font-size: 10pt !important;
-  }
-  
-  /* Ensure colors print correctly */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-}
-`;
+import { MapPin, User } from "lucide-react";
+import React from "react";
+import {
+  calculateSlotHeight,
+  PrintControls,
+  useA4Preview,
+} from "./print-timetable";
 
 // Type for the selected cell
 type SelectedCell = {
   dayId: number;
   timeSlotId: number;
 } | null;
-
-// Function to calculate minutes from time string (e.g. "8h30" -> 510 minutes)
-function timeToMinutes(timeStr: string): number {
-  const [hours, minutes] = timeStr.split("h");
-  return parseInt(hours) * 60 + (minutes ? parseInt(minutes) : 0);
-}
-
-// Function to calculate slot height based on duration
-function calculateSlotHeight(
-  start: string,
-  end: string,
-  isA4Preview: boolean = false
-): number {
-  const startMinutes = timeToMinutes(start);
-  const endMinutes = timeToMinutes(end);
-
-  // Calculate duration in minutes
-  const durationMinutes = endMinutes - startMinutes;
-
-  // Base height is 20px per 15 minutes (adjust as needed)
-  // For A4 preview, reduce the height by 30%
-  const baseHeight = isA4Preview ? 14 : 20;
-  return Math.max(durationMinutes * (baseHeight / 15), isA4Preview ? 28 : 40); // Minimum height adjusted for A4
-}
 
 export function Timetable({
   onCellSelect,
@@ -113,20 +31,7 @@ export function Timetable({
   currentStep: string;
 }) {
   const { timetableData, isLoading } = useTimetable();
-  const [isA4Preview, setIsA4Preview] = useState(false);
-
-  // Add print styles to the document
-  useEffect(() => {
-    // Create style element
-    const styleElement = document.createElement("style");
-    styleElement.innerHTML = printStyles;
-    document.head.appendChild(styleElement);
-
-    // Cleanup on unmount
-    return () => {
-      document.head.removeChild(styleElement);
-    };
-  }, []);
+  const { isA4Preview, setIsA4Preview, containerStyle } = useA4Preview();
 
   if (isLoading || !timetableData) {
     return (
@@ -156,14 +61,8 @@ export function Timetable({
     return entry1.entityId === entry2.entityId;
   };
 
-  // A4 paper dimensions (in pixels at 96 DPI)
-  // A4 is 210mm × 297mm, which is roughly 794px × 1123px at 96 DPI
-  // For landscape, we swap width and height
-  const a4Width = 1123; // Landscape width (was height in portrait)
-  const a4Height = 794; // Landscape height (was width in portrait)
-
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4 print-container">
       <div className="mb-4 flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold mb-2">
           {settings?.title ? settings.title : "Emploi du Temps"}
@@ -181,26 +80,12 @@ export function Timetable({
         </div>
       </div>
 
-      {/* A4 Preview Toggle */}
-      <div className="flex justify-end mb-4 items-center gap-2 no-print">
-        <Toggle
-          pressed={isA4Preview}
-          onPressedChange={setIsA4Preview}
-          aria-label="Toggle A4 preview"
-          className="data-[state=on]:bg-primary"
-        >
-          <Printer className="h-4 w-4 mr-2" />
-          Format A4 Paysage
-        </Toggle>
-
-        <button
-          onClick={() => window.print()}
-          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium px-3 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <Printer className="h-4 w-4" />
-          Imprimer
-        </button>
-      </div>
+      {/* Print Controls */}
+      <PrintControls
+        timetableData={timetableData}
+        isA4Preview={isA4Preview}
+        setIsA4Preview={setIsA4Preview}
+      />
 
       {/* A4 Preview Container */}
       <div
@@ -213,14 +98,7 @@ export function Timetable({
           borderWidth: settings?.borderWidth
             ? `${settings.borderWidth}px`
             : "1px",
-          ...(isA4Preview && {
-            width: `${a4Width * 0.8}px`, // 80% of A4 landscape width
-            height: `${a4Height * 0.8}px`, // 80% of A4 landscape height
-            maxWidth: "100%",
-            transform: "scale(0.9)",
-            transformOrigin: "top center",
-            fontSize: "0.85rem",
-          }),
+          ...containerStyle,
         }}
       >
         <div className="grid timetable-grid" style={{ gridTemplateColumns }}>
