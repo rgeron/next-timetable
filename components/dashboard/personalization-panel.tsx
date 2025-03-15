@@ -214,20 +214,31 @@ export function PersonalizationPanel({
 
     // Apply changes automatically after a longer delay
     teacherTimeoutRef.current = setTimeout(() => {
-      if (currentEntityId && timetableData && e.target.value) {
-        // Save this teacher for the subject
-        const updatedTeachers = {
-          ...subjectTeachers,
-          [currentEntityId]: e.target.value,
-        };
-        setSubjectTeachers(updatedTeachers);
-        localStorage.setItem(
-          "subjectTeachers",
-          JSON.stringify(updatedTeachers)
-        );
-
-        // Apply to all instances of this subject
+      if (currentEntityId && timetableData) {
+        // Apply to all instances of this subject, even if value is empty
         applyTeacherToAllInstances(e.target.value);
+
+        // Only save to subjectTeachers if there's a value
+        if (e.target.value) {
+          const updatedTeachers = {
+            ...subjectTeachers,
+            [currentEntityId]: e.target.value,
+          };
+          setSubjectTeachers(updatedTeachers);
+          localStorage.setItem(
+            "subjectTeachers",
+            JSON.stringify(updatedTeachers)
+          );
+        } else {
+          // Remove from subjectTeachers if empty
+          const updatedTeachers = { ...subjectTeachers };
+          delete updatedTeachers[currentEntityId];
+          setSubjectTeachers(updatedTeachers);
+          localStorage.setItem(
+            "subjectTeachers",
+            JSON.stringify(updatedTeachers)
+          );
+        }
       }
     }, 1000); // Increased delay to 1 second
   };
@@ -245,7 +256,7 @@ export function PersonalizationPanel({
     // Apply changes automatically after a longer delay
     roomTimeoutRef.current = setTimeout(() => {
       if (currentEntityId && timetableData) {
-        // Apply to all instances of this subject
+        // Apply to all instances of this subject, even if value is empty
         applyRoomToAllInstances(e.target.value);
       }
     }, 1000); // Increased delay to 1 second
@@ -289,10 +300,10 @@ export function PersonalizationPanel({
 
   // Apply teacher to all instances of this subject (now private helper function)
   const applyTeacherToAllInstances = (teacherValue = teacherName) => {
-    if (!timetableData || !currentEntityId || !teacherValue) return;
+    if (!timetableData || !currentEntityId) return;
 
     // Check if the teacher value has actually changed for this entity
-    if (subjectTeachers[currentEntityId] === teacherValue) {
+    if (teacherValue && subjectTeachers[currentEntityId] === teacherValue) {
       // No change, no need to update
       return;
     }
@@ -308,8 +319,10 @@ export function PersonalizationPanel({
         // Remove existing teacher info if present
         notes = notes.replace(/Professeur:\s*.+?(?:\n|$)/, "");
 
-        // Add teacher info
-        notes = `Professeur: ${teacherValue}\n${notes}`;
+        // Add teacher info only if there's a value
+        if (teacherValue) {
+          notes = `Professeur: ${teacherValue}\n${notes}`;
+        }
 
         changesMade = true;
 
@@ -322,14 +335,6 @@ export function PersonalizationPanel({
     });
 
     if (changesMade) {
-      // Save the updated teacher for this subject
-      const updatedTeachers = {
-        ...subjectTeachers,
-        [currentEntityId]: teacherValue,
-      };
-      setSubjectTeachers(updatedTeachers);
-      localStorage.setItem("subjectTeachers", JSON.stringify(updatedTeachers));
-
       // Save the updated timetable data
       saveTimeTableData(updatedData);
 
@@ -340,7 +345,7 @@ export function PersonalizationPanel({
 
   // Apply room to all instances of this subject
   const applyRoomToAllInstances = (roomValue = roomNumber) => {
-    if (!timetableData || !currentEntityId || !roomValue) return;
+    if (!timetableData || !currentEntityId) return;
 
     // Check if any entry with this entity ID already has this room value
     const needsUpdate = timetableData.schedule.some(
@@ -361,7 +366,7 @@ export function PersonalizationPanel({
         changesMade = true;
         return {
           ...entry,
-          room: roomValue,
+          room: roomValue, // This will be empty string if roomValue is empty
         };
       }
       return entry;
