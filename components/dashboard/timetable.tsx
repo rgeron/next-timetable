@@ -569,26 +569,31 @@ function ScheduleCell({
       >
         {/* If this is a split cell, use a side-by-side layout */}
         {!continuesFromPrev && entry.split?.enabled && entityB ? (
-          <div className="flex h-full -mx-1.5 -my-1">
+          <div className="flex h-full -mx-1.5 -my-1 overflow-hidden relative">
             {/* Week A content - left side */}
             <div
-              className="flex-1 p-1 pl-2 relative"
+              className="flex-1 p-1 pl-2 relative flex flex-col"
               style={{
                 backgroundColor: entity.color ? `${entity.color}25` : "#f0f0f0",
               }}
             >
-              <div
-                className="absolute -top-1 left-1 text-[0.6rem] font-bold px-1 rounded"
-                style={{
-                  color: entity?.color || "#000",
-                  border: `1px solid ${entity?.color || "#000"}`,
-                  backgroundColor: "white",
-                }}
-              >
-                A
+              {/* Tag A - positioned at the top right of the left section */}
+              <div className="flex justify-end mb-1">
+                <div
+                  className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
+                  style={{
+                    backgroundColor: entity?.color
+                      ? `${entity.color}40`
+                      : "#f0f0f0",
+                    color: entity?.color || "#000",
+                    border: `1px solid ${entity?.color || "#000"}`,
+                  }}
+                >
+                  A
+                </div>
               </div>
 
-              <div className="flex items-center justify-between mb-0.5 mt-2">
+              <div className="flex items-center justify-between mb-0.5">
                 <div className="font-medium text-xs">{entity.shortName}</div>
                 <div className="text-sm">{entity.icon}</div>
               </div>
@@ -610,30 +615,42 @@ function ScheduleCell({
               </div>
             </div>
 
-            {/* Vertical divider */}
-            <div className="w-[2px] bg-black h-full"></div>
+            {/* Vertical divider - positioned absolutely in the center of the container */}
+            <div
+              className="absolute top-0 bottom-0 left-1/2 transform -translate-x-1/2 w-[2px] bg-black"
+              style={{
+                height: "calc(100% + 2px)",
+                marginTop: "-1px",
+                marginBottom: "-1px",
+              }}
+            ></div>
 
             {/* Week B content - right side */}
             <div
-              className="flex-1 p-1 pr-2 relative"
+              className="flex-1 p-1 pr-2 relative flex flex-col"
               style={{
                 backgroundColor: entityB.color
                   ? `${entityB.color}25`
                   : "#f0f0f0",
               }}
             >
-              <div
-                className="absolute -top-1 right-1 text-[0.6rem] font-bold px-1 rounded"
-                style={{
-                  color: entityB?.color || "#000",
-                  border: `1px solid ${entityB?.color || "#000"}`,
-                  backgroundColor: "white",
-                }}
-              >
-                B
+              {/* Tag B - positioned at the top right of the right section */}
+              <div className="flex justify-end mb-1">
+                <div
+                  className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
+                  style={{
+                    backgroundColor: entityB?.color
+                      ? `${entityB.color}40`
+                      : "#f0f0f0",
+                    color: entityB?.color || "#000",
+                    border: `1px solid ${entityB?.color || "#000"}`,
+                  }}
+                >
+                  B
+                </div>
               </div>
 
-              <div className="flex items-center justify-between mb-0.5 mt-2">
+              <div className="flex items-center justify-between mb-0.5">
                 <div className="font-medium text-xs">{entityB.shortName}</div>
                 <div className="text-sm">{entityB.icon}</div>
               </div>
