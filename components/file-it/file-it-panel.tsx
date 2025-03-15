@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { useTimetable } from "@/lib/timetable-context";
 import { Eraser } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { IconPicker } from "./icon-picker";
 
 // Custom event for timetable slot selection
@@ -163,9 +162,6 @@ export function FileItPanel() {
       setShortName(trimmedShortName);
 
       setIsEditingShortName(false);
-
-      // Show success toast
-      toast.success("Abréviation mise à jour");
     }
   };
 
@@ -190,18 +186,11 @@ export function FileItPanel() {
     setShowAddNew(false);
     setIsTagModeActive(false);
     setActiveTag(null);
-
-    if (!eraserMode) {
-      toast.info("Mode effaceur activé. Cliquez sur un créneau pour le vider.");
-    } else {
-      toast.info("Mode effaceur désactivé.");
-    }
   };
 
   const handleQuickAction = (actionType: "récréation" | "pause") => {
     // Check if timetableData exists
     if (!timetableData) {
-      toast.error("Données de l'emploi du temps non disponibles");
       return;
     }
 
@@ -211,10 +200,6 @@ export function FileItPanel() {
     setEraserMode(false);
     setActiveTag(actionType);
     setIsTagModeActive(true);
-
-    toast.success(
-      `Mode "${actionType}" activé. Cliquez sur les créneaux pour ajouter "${actionType}".`
-    );
   };
 
   // Add a custom event listener for timetable slot selection when in tag mode or eraser mode
@@ -243,8 +228,6 @@ export function FileItPanel() {
 
         // Trigger a custom event to notify of timetable data change
         window.dispatchEvent(new Event("timetableDataChanged"));
-
-        toast.success("Créneau effacé");
         return;
       }
     };
