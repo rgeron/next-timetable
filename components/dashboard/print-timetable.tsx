@@ -255,10 +255,14 @@ export function calculateSlotHeight(
   // Calculate duration in minutes
   const durationMinutes = endMinutes - startMinutes;
 
-  // Base height is 20px per 15 minutes (adjust as needed)
-  // For A4 preview, reduce the height by 30%
-  const baseHeight = isA4Preview ? 14 : 20;
-  return Math.max(durationMinutes * (baseHeight / 15), isA4Preview ? 28 : 40); // Minimum height adjusted for A4
+  // For A4 preview, use a smaller base height to fit more content
+  // Base height is pixels per 15 minutes
+  const baseHeight = isA4Preview ? 10 : 20;
+
+  // Minimum height to ensure content is visible
+  const minHeight = isA4Preview ? 24 : 40;
+
+  return Math.max(durationMinutes * (baseHeight / 15), minHeight);
 }
 
 // Function to calculate minutes from time string (e.g. "8h30" -> 510 minutes)
@@ -270,18 +274,52 @@ export function timeToMinutes(timeStr: string): number {
 // Hook to manage A4 preview state
 export function useA4Preview() {
   const [isA4Preview, setIsA4Preview] = useState(false);
+  const [dimensions, setDimensions] = useState({
+    width: "100%",
+    height: "auto",
+  });
+
+  // Calculate dimensions based on viewport size
+  useEffect(() => {
+    const calculateDimensions = () => {
+      // A4 paper dimensions (in pixels at 96 DPI)
+      // For landscape, width is longer than height
+      const maxWidth = Math.min(window.innerWidth * 0.85, 1123); // 85% of viewport width, max 1123px
+      const heightBasedOnWidth = (maxWidth * a4Height) / a4Width; // Maintain A4 ratio
+
+      setDimensions({
+        width: `${maxWidth}px`,
+        height: `${heightBasedOnWidth}px`,
+      });
+    };
+
+    // Calculate on mount and window resize
+    calculateDimensions();
+    window.addEventListener("resize", calculateDimensions);
+
+    return () => {
+      window.removeEventListener("resize", calculateDimensions);
+    };
+  }, []);
 
   return {
     isA4Preview,
     setIsA4Preview,
     containerStyle: isA4Preview
       ? {
-          width: `${a4Width * 0.8}px`, // 80% of A4 landscape width
-          height: `${a4Height * 0.8}px`, // 80% of A4 landscape height
+          width: dimensions.width,
+          height: dimensions.height,
           maxWidth: "100%",
-          transform: "scale(0.9)",
           transformOrigin: "top center",
           fontSize: "0.85rem",
+          margin: "0 auto",
+          overflow: "hidden",
+          backgroundColor: "white",
+          boxShadow: "0 4px 24px rgba(0, 0, 0, 0.15)",
+          borderRadius: "4px",
+          padding: "0",
+          position: "relative" as const,
+          aspectRatio: `${a4Width} / ${a4Height}`,
         }
       : {},
   };

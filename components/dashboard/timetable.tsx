@@ -7,13 +7,9 @@ import {
   type TimeTableData,
 } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
-import { MapPin, User } from "lucide-react";
+import { MapPin, Printer, User } from "lucide-react";
 import React from "react";
-import {
-  calculateSlotHeight,
-  PrintControls,
-  useA4Preview,
-} from "./print-timetable";
+import { calculateSlotHeight, useA4Preview } from "./print-timetable";
 
 // Type for the selected cell
 type SelectedCell = {
@@ -31,7 +27,9 @@ export function Timetable({
   currentStep: string;
 }) {
   const { timetableData, isLoading } = useTimetable();
-  const { isA4Preview, setIsA4Preview, containerStyle } = useA4Preview();
+  // Always use A4 preview, no toggle needed
+  const { containerStyle } = useA4Preview();
+  const isA4Preview = true;
 
   if (isLoading || !timetableData) {
     return (
@@ -63,35 +61,124 @@ export function Timetable({
 
   return (
     <div className="w-full p-4 print-container">
-      <div className="mb-4 flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold mb-2">
-          {settings?.title ? settings.title : "Emploi du Temps"}
-        </h2>
-        <div className="text-sm text-muted-foreground">
-          {timetableData.metadata.school && (
-            <span>{timetableData.metadata.school} • </span>
-          )}
-          {timetableData.metadata.year && (
-            <span>{timetableData.metadata.year} • </span>
-          )}
-          {timetableData.metadata.class && (
-            <span>{timetableData.metadata.class}</span>
-          )}
-        </div>
+      {/* Print Controls - Only show print button, no toggle */}
+      <div className="flex justify-end mb-4 items-center gap-2 no-print">
+        <button
+          onClick={() => {
+            // Create a new window
+            const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+              alert(
+                "Veuillez autoriser les popups pour imprimer l'emploi du temps."
+              );
+              return;
+            }
+
+            // Get the timetable HTML
+            const timetableContainer = document.querySelector(
+              ".timetable-container"
+            );
+            if (!timetableContainer || !timetableData) return;
+
+            // Create HTML content for the print window
+            const htmlContent = `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>Emploi du Temps</title>
+                  <style>
+                    @page {
+                      size: A4 landscape;
+                      margin: 10mm;
+                    }
+                    body {
+                      margin: 0;
+                      padding: 10mm;
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                      color-adjust: exact !important;
+                      font-family: system-ui, -apple-system, sans-serif;
+                    }
+                    .timetable-container {
+                      width: 100% !important;
+                      height: auto !important;
+                      border: 1px solid #ddd;
+                      box-shadow: none !important;
+                      transform: none !important;
+                    }
+                    .timetable-grid {
+                      display: grid;
+                      width: 100%;
+                    }
+                    .timetable-header {
+                      background-color: #f5f5f5 !important;
+                      font-weight: bold;
+                      padding: 8px;
+                      text-align: center;
+                      border-bottom: 1px solid #ddd;
+                    }
+                    .timetable-time {
+                      background-color: #f9f9f9 !important;
+                      padding: 8px;
+                      text-align: center;
+                      border-bottom: 1px solid #ddd;
+                      border-right: 1px solid #ddd;
+                    }
+                    .timetable-cell {
+                      page-break-inside: avoid;
+                      break-inside: avoid;
+                    }
+                    * {
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                      color-adjust: exact !important;
+                    }
+                  </style>
+                </head>
+                <body onload="setTimeout(function() { window.print(); }, 500)">
+                  <div style="text-align: center; margin-bottom: 15px;">
+                    <h1 style="margin-bottom: 5px; font-size: 24px;">${
+                      settings?.title || "Emploi du Temps"
+                    }</h1>
+                    <div style="font-size: 14px; color: #666;">
+                      ${
+                        timetableData.metadata.school
+                          ? timetableData.metadata.school + " • "
+                          : ""
+                      }
+                      ${
+                        timetableData.metadata.year
+                          ? timetableData.metadata.year + " • "
+                          : ""
+                      }
+                      ${timetableData.metadata.class || ""}
+                    </div>
+                  </div>
+                  ${timetableContainer.outerHTML}
+                  <script>
+                    window.addEventListener('afterprint', function() {
+                      window.close();
+                    });
+                  </script>
+                </body>
+              </html>
+            `;
+
+            // Write to the new window
+            printWindow.document.open();
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+          }}
+          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium px-3 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Printer className="h-4 w-4" />
+          Imprimer
+        </button>
       </div>
 
-      {/* Print Controls */}
-      <PrintControls
-        timetableData={timetableData}
-        isA4Preview={isA4Preview}
-        setIsA4Preview={setIsA4Preview}
-      />
-
-      {/* A4 Preview Container */}
+      {/* A4 Preview Container - Always enabled */}
       <div
-        className={`border rounded-lg overflow-hidden mx-auto timetable-container ${
-          isA4Preview ? "shadow-lg" : ""
-        }`}
+        className="border overflow-hidden mx-auto timetable-container shadow-lg"
         style={{
           fontFamily: settings?.fontFamily || "inherit",
           borderColor: settings?.borderColor || "inherit",
@@ -101,13 +188,27 @@ export function Timetable({
           ...containerStyle,
         }}
       >
+        {/* Title inside A4 container */}
+        <div className="p-3 text-center">
+          <h2 className="text-lg font-bold mb-1">
+            {settings?.title ? settings.title : "Emploi du Temps"}
+          </h2>
+          <div className="text-xs text-muted-foreground">
+            {timetableData.metadata.school && (
+              <span>{timetableData.metadata.school} • </span>
+            )}
+            {timetableData.metadata.year && (
+              <span>{timetableData.metadata.year} • </span>
+            )}
+            {timetableData.metadata.class && (
+              <span>{timetableData.metadata.class}</span>
+            )}
+          </div>
+        </div>
+
         <div className="grid timetable-grid" style={{ gridTemplateColumns }}>
           {/* Header cell for time column */}
-          <div
-            className={`p-2 bg-muted/20 border-b border-r font-medium text-center timetable-header ${
-              isA4Preview ? "text-xs" : ""
-            }`}
-          >
+          <div className="p-1 bg-muted/20 border-b border-r font-medium text-center timetable-header text-xs">
             Horaire
           </div>
 
@@ -115,9 +216,7 @@ export function Timetable({
           {timetableData.days.map((day) => (
             <div
               key={day.id}
-              className={`p-2 bg-muted/20 border-b font-medium text-center timetable-header ${
-                isA4Preview ? "text-xs" : ""
-              }`}
+              className="p-1 bg-muted/20 border-b font-medium text-center timetable-header text-xs"
             >
               {day.name.charAt(0).toUpperCase() + day.name.slice(1)}
             </div>
@@ -135,23 +234,11 @@ export function Timetable({
               <React.Fragment key={timeSlot.id}>
                 {/* Time column */}
                 <div
-                  className={`p-2 bg-muted/10 border-b border-r flex flex-col justify-center items-center timetable-time ${
-                    isA4Preview ? "text-xs" : ""
-                  }`}
+                  className="p-1 bg-muted/10 border-b border-r flex flex-col justify-center items-center timetable-time text-xs"
                   style={{ height: `${height}px` }}
                 >
-                  <div
-                    className={`${
-                      isA4Preview ? "text-xs" : "text-sm"
-                    } font-medium`}
-                  >
-                    {timeSlot.start}
-                  </div>
-                  <div
-                    className={`${
-                      isA4Preview ? "text-xs" : "text-xs"
-                    } text-muted-foreground`}
-                  >
+                  <div className="text-xs font-medium">{timeSlot.start}</div>
+                  <div className="text-xs text-muted-foreground">
                     {timeSlot.end}
                   </div>
                 </div>
@@ -225,7 +312,7 @@ function ScheduleCell({
   isPersonalizeStep,
   continuesFromPrev,
   continuesToNext,
-  isA4Preview = false,
+  isA4Preview = true,
 }: {
   entry?: ScheduleEntry | null;
   timetableData: TimeTableData;
@@ -275,21 +362,13 @@ function ScheduleCell({
         onClick={handleCellClick}
       >
         {entry?.tag ? (
-          <div className="w-full h-full p-2 flex items-center justify-center">
-            <div
-              className={`px-2 py-1 bg-muted rounded-md ${
-                isA4Preview ? "text-xs" : "text-sm"
-              } font-medium`}
-            >
+          <div className="w-full h-full p-1 flex items-center justify-center">
+            <div className="px-1 py-0.5 bg-muted rounded-md text-xs font-medium">
               {entry.tag}
             </div>
           </div>
         ) : (
-          <div
-            className={`w-full h-full p-2 flex items-center justify-center text-muted-foreground ${
-              isA4Preview ? "text-xs" : "text-sm"
-            }`}
-          >
+          <div className="w-full h-full p-1 flex items-center justify-center text-muted-foreground text-xs">
             -
           </div>
         )}
@@ -309,11 +388,7 @@ function ScheduleCell({
         data-schedule-id={entry.id}
         onClick={handleCellClick}
       >
-        <div
-          className={`w-full h-full p-2 flex items-center justify-center text-muted-foreground ${
-            isA4Preview ? "text-xs" : "text-sm"
-          }`}
-        >
+        <div className="w-full h-full p-1 flex items-center justify-center text-muted-foreground text-xs">
           {entry.entityId}
         </div>
       </div>
@@ -323,17 +398,13 @@ function ScheduleCell({
   // Extract teacher name from notes if it exists
   const teacherInfo = entry.notes.includes("Professeur:") ? (
     <div
-      className={`${
-        isA4Preview ? "text-[0.65rem]" : "text-xs"
-      } mt-0.5 font-medium inline-flex items-center rounded-full px-2 py-0.5`}
+      className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
       style={{
         background: `linear-gradient(135deg, ${entity.color}30, ${entity.color}15)`,
         color: entity.color,
       }}
     >
-      <User
-        className={`${isA4Preview ? "h-2 w-2" : "h-3 w-3"} mr-1.5 opacity-70`}
-      />
+      <User className="h-2 w-2 mr-1 opacity-70" />
       <span>
         {entry.notes
           .split("\n")
@@ -360,13 +431,13 @@ function ScheduleCell({
     >
       {/* Colored sidebar */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1.5"
+        className="absolute left-0 top-0 bottom-0 w-1"
         style={{ backgroundColor: entity.color || "#f0f0f0" }}
       ></div>
 
       {/* Main content with semi-transparent background */}
       <div
-        className={`h-full w-full ${isA4Preview ? "p-1 pl-2" : "p-2 pl-3"}`}
+        className="h-full w-full p-1 pl-1.5"
         style={{
           backgroundColor: entity.color ? `${entity.color}25` : "#f0f0f0",
         }}
@@ -374,37 +445,25 @@ function ScheduleCell({
         <div className="flex flex-col h-full">
           {/* Only show subject name and icon if this is the first cell in a sequence */}
           {!continuesFromPrev && (
-            <div className="flex items-center justify-between mb-1.5">
-              <div
-                className={`font-medium ${isA4Preview ? "text-xs" : "text-sm"}`}
-              >
-                {entity.shortName}
-              </div>
-              <div className={`${isA4Preview ? "text-base" : "text-lg"}`}>
-                {entity.icon}
-              </div>
+            <div className="flex items-center justify-between mb-0.5">
+              <div className="font-medium text-xs">{entity.shortName}</div>
+              <div className="text-sm">{entity.icon}</div>
             </div>
           )}
 
           {/* Only show room and teacher info if this is the first cell in a sequence */}
           {!continuesFromPrev && (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-0.5">
               {/* Show room info */}
               {entry.room && (
                 <div
-                  className={`${
-                    isA4Preview ? "text-[0.65rem]" : "text-xs"
-                  } mt-0.5 font-medium inline-flex items-center rounded-full px-2 py-0.5`}
+                  className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
                   style={{
                     background: `linear-gradient(135deg, ${entity.color}15, ${entity.color}30)`,
                     color: entity.color,
                   }}
                 >
-                  <MapPin
-                    className={`${
-                      isA4Preview ? "h-2 w-2" : "h-3 w-3"
-                    } mr-1.5 opacity-70`}
-                  />
+                  <MapPin className="h-2 w-2 mr-1 opacity-70" />
                   <span>{entry.room}</span>
                 </div>
               )}

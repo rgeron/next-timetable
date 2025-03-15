@@ -12,7 +12,7 @@ type SelectedCell = {
   timeSlotId: number;
 } | null;
 
-export function DashboardLayout(props: { children?: React.ReactNode }) {
+export function DashboardLayout() {
   // State to keep track of the current step
   const [currentStep, setCurrentStep] = useState<Step>(STEPS[0]);
   // State to keep track of the selected cell for personalization
