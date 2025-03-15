@@ -340,24 +340,27 @@ function ScheduleCell({
             </div>
           )}
 
-          <div className="flex flex-wrap gap-1">
-            {/* Always show room info */}
-            {entry.room && (
-              <div
-                className="text-xs font-medium inline-flex items-center rounded-full px-2 py-0.5"
-                style={{
-                  backgroundColor: `${entity.color}15`,
-                  color: entity.color,
-                }}
-              >
-                <MapPin className="h-3 w-3 mr-1.5 opacity-70" />
-                <span>{entry.room}</span>
-              </div>
-            )}
+          {/* Only show room and teacher info if this is the first cell in a sequence */}
+          {!continuesFromPrev && (
+            <div className="flex flex-wrap gap-1">
+              {/* Show room info */}
+              {entry.room && (
+                <div
+                  className="text-xs font-medium inline-flex items-center rounded-full px-2 py-0.5"
+                  style={{
+                    backgroundColor: `${entity.color}15`,
+                    color: entity.color,
+                  }}
+                >
+                  <MapPin className="h-3 w-3 mr-1.5 opacity-70" />
+                  <span>{entry.room}</span>
+                </div>
+              )}
 
-            {/* Always show teacher info */}
-            {teacherInfo}
-          </div>
+              {/* Show teacher info */}
+              {teacherInfo}
+            </div>
+          )}
         </div>
       </div>
     </div>
