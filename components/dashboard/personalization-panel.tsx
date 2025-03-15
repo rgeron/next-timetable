@@ -1,7 +1,15 @@
 "use client";
 
+import { IconPicker } from "@/components/file-it/icon-picker";
+import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -12,6 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { saveTimeTableData } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
+import { Paintbrush, Palette, Square, Type } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // Type for the selected cell
@@ -139,6 +148,17 @@ export function PersonalizationPanel({
     // Set current entity ID
     setCurrentEntityId(entry.entityId);
 
+    // Update color and icon based on the selected entity
+    if (entry.entityId) {
+      const entity =
+        timetableData.subjects.find((s) => s.id === entry.entityId) ||
+        timetableData.activities.find((a) => a.id === entry.entityId);
+      if (entity) {
+        setSelectedColor(entity.color || "#3498db");
+        setSelectedIcon(entity.icon || "📚");
+      }
+    }
+
     // Set room number
     setRoomNumber(entry.room || "");
 
@@ -195,7 +215,8 @@ export function PersonalizationPanel({
 
   // Handle teacher name change
   const handleTeacherNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTeacherName(e.target.value);
+    const newValue = e.target.value;
+    setTeacherName(newValue);
     setTeacherNameModified(true);
 
     // Clear previous timeout if it exists
@@ -203,17 +224,46 @@ export function PersonalizationPanel({
       clearTimeout(teacherTimeoutRef.current);
     }
 
-    // Apply changes automatically after a longer delay
+    // Apply changes immediately for better user experience
+    if (currentEntityId && timetableData && selectedCell) {
+      const { dayId, timeSlotId } = selectedCell;
+      const updatedData = structuredClone(timetableData);
+      const entry = updatedData.schedule.find(
+        (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+      );
+
+      if (entry) {
+        let notes = entry.notes || "";
+
+        // Remove existing teacher info if present
+        notes = notes.replace(/Professeur:\s*.+?(?:\n|$)/, "");
+
+        // Add teacher info only if there's a value
+        if (newValue) {
+          notes = `Professeur: ${newValue}\n${notes}`;
+        }
+
+        entry.notes = notes.trim();
+
+        // Save the updated timetable data
+        saveTimeTableData(updatedData);
+
+        // Trigger a custom event to notify of timetable data change
+        window.dispatchEvent(new Event("timetableDataChanged"));
+      }
+    }
+
+    // Apply changes to all instances after a delay
     teacherTimeoutRef.current = setTimeout(() => {
       if (currentEntityId && timetableData) {
         // Apply to all instances of this subject, even if value is empty
-        applyTeacherToAllInstances(e.target.value);
+        applyTeacherToAllInstances(newValue);
 
         // Only save to subjectTeachers if there's a value
-        if (e.target.value) {
+        if (newValue) {
           const updatedTeachers = {
             ...subjectTeachers,
-            [currentEntityId]: e.target.value,
+            [currentEntityId]: newValue,
           };
           setSubjectTeachers(updatedTeachers);
           localStorage.setItem(
@@ -236,7 +286,8 @@ export function PersonalizationPanel({
 
   // Handle room number change
   const handleRoomNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRoomNumber(e.target.value);
+    const newValue = e.target.value;
+    setRoomNumber(newValue);
     setRoomNumberModified(true);
 
     // Clear previous timeout if it exists
@@ -244,11 +295,30 @@ export function PersonalizationPanel({
       clearTimeout(roomTimeoutRef.current);
     }
 
-    // Apply changes automatically after a longer delay
+    // Apply changes immediately for better user experience
+    if (currentEntityId && timetableData && selectedCell) {
+      const { dayId, timeSlotId } = selectedCell;
+      const updatedData = structuredClone(timetableData);
+      const entry = updatedData.schedule.find(
+        (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+      );
+
+      if (entry) {
+        entry.room = newValue;
+
+        // Save the updated timetable data
+        saveTimeTableData(updatedData);
+
+        // Trigger a custom event to notify of timetable data change
+        window.dispatchEvent(new Event("timetableDataChanged"));
+      }
+    }
+
+    // Apply changes to all instances after a delay
     roomTimeoutRef.current = setTimeout(() => {
       if (currentEntityId && timetableData) {
         // Apply to all instances of this subject, even if value is empty
-        applyRoomToAllInstances(e.target.value);
+        applyRoomToAllInstances(newValue);
       }
     }, 1000); // Increased delay to 1 second
   };
@@ -305,7 +375,7 @@ export function PersonalizationPanel({
     // Update all schedule entries with this entity ID
     updatedData.schedule = updatedData.schedule.map((entry) => {
       if (entry.entityId === currentEntityId) {
-        let notes = entry.notes;
+        let notes = entry.notes || "";
 
         // Remove existing teacher info if present
         notes = notes.replace(/Professeur:\s*.+?(?:\n|$)/, "");
@@ -441,8 +511,9 @@ export function PersonalizationPanel({
 
     if (!entry || !entry.split) return;
 
-    entry.split.entityIdB = entityId;
-    setEntityIdB(entityId);
+    // Set entityIdB to empty string if "none" is selected
+    entry.split.entityIdB = entityId === "none" ? "" : entityId;
+    setEntityIdB(entityId === "none" ? null : entityId);
 
     saveTimeTableData(updatedData);
     window.dispatchEvent(new Event("timetableDataChanged"));
@@ -487,7 +558,7 @@ export function PersonalizationPanel({
                 <div className="space-y-2">
                   <Label htmlFor="entity">Matière / Activité</Label>
                   <Select
-                    value={currentEntityId || ""}
+                    value={currentEntityId || "none"}
                     onValueChange={(value) => {
                       if (!selectedCell || !timetableData) return;
 
@@ -505,9 +576,10 @@ export function PersonalizationPanel({
                       );
                       const entityType = isSubject ? "subject" : "activity";
 
-                      entry.entityId = value;
-                      entry.type = entityType;
-                      setCurrentEntityId(value);
+                      // Set entityId to empty string if "none" is selected
+                      entry.entityId = value === "none" ? "" : value;
+                      entry.type = value === "none" ? "" : entityType;
+                      setCurrentEntityId(value === "none" ? null : value);
 
                       saveTimeTableData(updatedData);
                       window.dispatchEvent(new Event("timetableDataChanged"));
@@ -517,7 +589,7 @@ export function PersonalizationPanel({
                       <SelectValue placeholder="Sélectionner une matière" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucune</SelectItem>
+                      <SelectItem value="none">Aucune</SelectItem>
                       {timetableData.subjects.map((subject) => (
                         <SelectItem key={subject.id} value={subject.id}>
                           {subject.icon} {subject.name}
@@ -531,6 +603,71 @@ export function PersonalizationPanel({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {currentEntityId && (
+                  <div className="space-y-4 rounded-lg border p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Palette className="h-4 w-4" />
+                      <span>Apparence</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cell-color">Couleur</Label>
+                        <div className="flex items-center gap-2">
+                          <ColorPicker
+                            color={selectedColor}
+                            onChange={handleColorChange}
+                            onChangeComplete={() => {}}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cell-icon">Icône</Label>
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-10 h-10 p-0 flex items-center justify-center"
+                              >
+                                {selectedIcon ? (
+                                  <span className="text-xl">
+                                    {selectedIcon}
+                                  </span>
+                                ) : (
+                                  <Palette className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0">
+                              <IconPicker
+                                selectedIcon={selectedIcon}
+                                onSelectIcon={(icon) => {
+                                  setSelectedIcon(icon);
+                                  setIconModified(true);
+                                  if (currentEntityId && timetableData) {
+                                    const entityType =
+                                      currentEntityId.startsWith("s-")
+                                        ? "subject"
+                                        : "activity";
+                                    updateEntityIcon(
+                                      currentEntityId,
+                                      entityType,
+                                      icon
+                                    );
+                                  }
+                                }}
+                                onClose={() => {}}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="room">Salle</Label>
@@ -594,7 +731,7 @@ export function PersonalizationPanel({
                           Matière semaine {weekType === "A" ? "B" : "A"}
                         </Label>
                         <Select
-                          value={entityIdB || ""}
+                          value={entityIdB || "none"}
                           onValueChange={handleEntityBChange}
                         >
                           <SelectTrigger id="entity-b">
@@ -605,7 +742,7 @@ export function PersonalizationPanel({
                             />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Aucune</SelectItem>
+                            <SelectItem value="none">Aucune</SelectItem>
                             {timetableData.subjects.map((subject) => (
                               <SelectItem key={subject.id} value={subject.id}>
                                 {subject.icon} {subject.name}
@@ -636,8 +773,6 @@ export function PersonalizationPanel({
                     </div>
                   )}
                 </div>
-
-                {/* ... existing buttons ... */}
               </div>
             </>
           ) : (
@@ -647,7 +782,112 @@ export function PersonalizationPanel({
           )}
         </TabsContent>
 
-        {/* ... existing global tab ... */}
+        <TabsContent
+          value="global"
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+        >
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Personnalisation globale</h3>
+
+            <Tabs defaultValue="typography">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="typography">
+                  <Type className="h-4 w-4 mr-2" />
+                  Typographie
+                </TabsTrigger>
+                <TabsTrigger value="border">
+                  <Square className="h-4 w-4 mr-2" />
+                  Bordure
+                </TabsTrigger>
+                <TabsTrigger value="title">
+                  <Paintbrush className="h-4 w-4 mr-2" />
+                  Titre
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="typography" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="font-family">Police d&apos;écriture</Label>
+                  <Select
+                    value={globalSettings.fontFamily}
+                    onValueChange={(value) =>
+                      setGlobalSettings({
+                        ...globalSettings,
+                        fontFamily: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger id="font-family">
+                      <SelectValue placeholder="Sélectionnez une police" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fontFamilies.map((font) => (
+                        <SelectItem key={font.value} value={font.value}>
+                          {font.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="border" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="border-color">Couleur de bordure</Label>
+                  <div className="flex items-center gap-2">
+                    <ColorPicker
+                      color={globalSettings.borderColor}
+                      onChange={handleBorderColorChange}
+                      onChangeComplete={saveGlobalSettings}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="border-width">Épaisseur de bordure</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="border-width"
+                      type="range"
+                      min="0"
+                      max="5"
+                      step="1"
+                      value={globalSettings.borderWidth}
+                      onChange={(e) =>
+                        setGlobalSettings({
+                          ...globalSettings,
+                          borderWidth: parseInt(e.target.value),
+                        })
+                      }
+                      className="flex-1"
+                    />
+                    <span className="w-8 text-center">
+                      {globalSettings.borderWidth}px
+                    </span>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="title" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="timetable-title">
+                    Titre de l&apos;emploi du temps
+                  </Label>
+                  <Input
+                    id="timetable-title"
+                    value={globalSettings.title}
+                    onChange={handleTitleChange}
+                    placeholder="Entrez un titre pour votre emploi du temps"
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <Button className="w-full" onClick={saveGlobalSettings}>
+              Enregistrer les paramètres
+            </Button>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );

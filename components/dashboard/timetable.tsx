@@ -543,24 +543,25 @@ function ScheduleCell({
   }
 
   // Extract teacher name from notes if it exists
-  const teacherInfo = entry.notes.includes("Professeur:") ? (
-    <div
-      className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
-      style={{
-        background: `linear-gradient(135deg, ${entity.color}30, ${entity.color}15)`,
-        color: entity.color,
-      }}
-    >
-      <User className="h-2 w-2 mr-1 opacity-70" />
-      <span>
-        {entry.notes
-          .split("\n")
-          .find((line) => line.startsWith("Professeur:"))
-          ?.replace("Professeur:", "")
-          .trim()}
-      </span>
-    </div>
-  ) : null;
+  const teacherInfo =
+    entry.notes && entry.notes.includes("Professeur:") ? (
+      <div
+        className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
+        style={{
+          background: `linear-gradient(135deg, ${entity.color}30, ${entity.color}15)`,
+          color: entity.color,
+        }}
+      >
+        <User className="h-2 w-2 mr-1 opacity-70" />
+        <span>
+          {entry.notes
+            .split("\n")
+            .find((line) => line.startsWith("Professeur:"))
+            ?.replace("Professeur:", "")
+            .trim()}
+        </span>
+      </div>
+    ) : null;
 
   // Determine border classes based on continuity
   const borderClasses = `border-l ${!continuesToNext ? "border-b" : ""}`;
