@@ -22,7 +22,6 @@ import { getScheduleEntry, saveTimeTableData } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
 import { MapPin, Paintbrush, Palette, Square, Type, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 // Type for the selected cell
 type SelectedCell = {
@@ -83,6 +82,8 @@ export function PersonalizationPanel({
 
   // Refs to track previous values
   const prevSelectedCellRef = useRef<SelectedCell>(null);
+  const teacherTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const roomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load saved global settings on mount only
   useEffect(() => {
@@ -96,6 +97,16 @@ export function PersonalizationPanel({
     if (savedTeachers) {
       setSubjectTeachers(JSON.parse(savedTeachers));
     }
+
+    // Cleanup timeouts on unmount
+    return () => {
+      if (teacherTimeoutRef.current) {
+        clearTimeout(teacherTimeoutRef.current);
+      }
+      if (roomTimeoutRef.current) {
+        clearTimeout(roomTimeoutRef.current);
+      }
+    };
   }, [titleModified]);
 
   // Reset modification flags when cell selection changes
@@ -187,8 +198,6 @@ export function PersonalizationPanel({
       `${globalSettings.borderWidth}px`
     );
 
-    toast.success("Paramètres globaux enregistrés");
-
     // Reset modification flag
     setTitleModified(false);
   };
@@ -198,9 +207,14 @@ export function PersonalizationPanel({
     setTeacherName(e.target.value);
     setTeacherNameModified(true);
 
-    // Apply changes automatically after a short delay
-    setTimeout(() => {
-      if (currentEntityId && timetableData) {
+    // Clear previous timeout if it exists
+    if (teacherTimeoutRef.current) {
+      clearTimeout(teacherTimeoutRef.current);
+    }
+
+    // Apply changes automatically after a longer delay
+    teacherTimeoutRef.current = setTimeout(() => {
+      if (currentEntityId && timetableData && e.target.value) {
         // Save this teacher for the subject
         const updatedTeachers = {
           ...subjectTeachers,
@@ -214,10 +228,8 @@ export function PersonalizationPanel({
 
         // Apply to all instances of this subject
         applyTeacherToAllInstances(e.target.value);
-
-        toast.success("Professeur mis à jour");
       }
-    }, 500);
+    }, 1000); // Increased delay to 1 second
   };
 
   // Handle room number change
@@ -225,15 +237,18 @@ export function PersonalizationPanel({
     setRoomNumber(e.target.value);
     setRoomNumberModified(true);
 
-    // Apply changes automatically after a short delay
-    setTimeout(() => {
+    // Clear previous timeout if it exists
+    if (roomTimeoutRef.current) {
+      clearTimeout(roomTimeoutRef.current);
+    }
+
+    // Apply changes automatically after a longer delay
+    roomTimeoutRef.current = setTimeout(() => {
       if (currentEntityId && timetableData) {
         // Apply to all instances of this subject
         applyRoomToAllInstances(e.target.value);
-
-        toast.success("Salle mise à jour");
       }
-    }, 500);
+    }, 1000); // Increased delay to 1 second
   };
 
   // Handle title change
@@ -275,6 +290,12 @@ export function PersonalizationPanel({
   // Apply teacher to all instances of this subject (now private helper function)
   const applyTeacherToAllInstances = (teacherValue = teacherName) => {
     if (!timetableData || !currentEntityId || !teacherValue) return;
+
+    // Check if the teacher value has actually changed for this entity
+    if (subjectTeachers[currentEntityId] === teacherValue) {
+      // No change, no need to update
+      return;
+    }
 
     const updatedData = { ...timetableData };
     let changesMade = false;
@@ -320,6 +341,16 @@ export function PersonalizationPanel({
   // Apply room to all instances of this subject
   const applyRoomToAllInstances = (roomValue = roomNumber) => {
     if (!timetableData || !currentEntityId || !roomValue) return;
+
+    // Check if any entry with this entity ID already has this room value
+    const needsUpdate = timetableData.schedule.some(
+      (entry) => entry.entityId === currentEntityId && entry.room !== roomValue
+    );
+
+    if (!needsUpdate) {
+      // No change needed
+      return;
+    }
 
     const updatedData = { ...timetableData };
     let changesMade = false;
@@ -371,9 +402,7 @@ export function PersonalizationPanel({
                     <ColorPicker
                       color={selectedColor}
                       onChange={handleColorChange}
-                      onChangeComplete={() => {
-                        toast.success("Couleur mise à jour");
-                      }}
+                      onChangeComplete={() => {}}
                     />
                   </div>
                 </div>
@@ -411,7 +440,6 @@ export function PersonalizationPanel({
                                 entityType,
                                 icon
                               );
-                              toast.success("Icône mise à jour");
                             }
                           }}
                           onClose={() => {}}
