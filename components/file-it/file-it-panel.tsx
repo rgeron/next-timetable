@@ -363,22 +363,32 @@ export function FileItPanel() {
         )}
 
         {selectedEntityId && selectedEntity && !eraserMode && (
-          <div className="mt-4 p-3 border rounded-md bg-muted/30">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-medium">
-                {entityType === "subject" ? "Matière" : "Activité"}{" "}
-                sélectionnée:
-              </p>
+          <div className="mt-4 border rounded-lg shadow-sm overflow-hidden">
+            <div
+              className="p-3 flex items-center gap-3"
+              style={{ backgroundColor: `${selectedColor}20` }}
+            >
+              <div
+                className="flex items-center justify-center w-10 h-10 rounded-full text-xl"
+                style={{ backgroundColor: selectedColor, color: "#fff" }}
+              >
+                {selectedEntity.icon}
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-base">{selectedEntity.name}</h4>
+                <p className="text-xs text-muted-foreground">
+                  {entityType === "subject" ? "Matière" : "Activité"}
+                </p>
+              </div>
               <div className="flex items-center gap-2">
                 <ColorPicker
                   color={selectedColor}
                   onChange={handleColorChange}
                 />
-
                 <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
                   <PopoverTrigger asChild>
                     <button
-                      className="w-8 h-8 flex items-center justify-center text-xl border rounded cursor-pointer hover:bg-muted"
+                      className="w-8 h-8 flex items-center justify-center text-lg border rounded-md cursor-pointer hover:bg-muted transition-colors"
                       aria-label="Changer l'icône"
                     >
                       {selectedEntity.icon}
@@ -394,15 +404,12 @@ export function FileItPanel() {
                 </Popover>
               </div>
             </div>
-            <div className="flex items-center mb-3">
-              <p>{selectedEntity.name}</p>
-            </div>
 
-            <div className="mb-3">
+            <div className="p-3 border-t">
               {isEditingShortName ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Abréviation:</label>
+                    <label className="text-sm font-medium">Abréviation</label>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -427,15 +434,17 @@ export function FileItPanel() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Abréviation:</label>
-                  <div className="flex-1 p-2 bg-muted/50 rounded text-sm">
-                    {selectedEntity.shortName}
+                  <div className="flex-1">
+                    <div className="text-sm font-medium mb-1">Abréviation</div>
+                    <div className="p-2 bg-muted/50 rounded-md text-sm">
+                      {selectedEntity.shortName || "Non définie"}
+                    </div>
                   </div>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => setIsEditingShortName(true)}
-                    className="h-6 px-2 shrink-0"
+                    className="h-8 px-3 shrink-0 self-end"
                   >
                     Modifier
                   </Button>
@@ -443,21 +452,35 @@ export function FileItPanel() {
               )}
             </div>
 
-            <p className="text-sm text-muted-foreground mt-2">
-              Cliquez sur un créneau de l&apos;emploi du temps pour y ajouter
-              cette {entityType === "subject" ? "matière" : "activité"}.
-            </p>
+            <div className="p-3 bg-muted/10 border-t flex items-center gap-2">
+              <div
+                className="w-1 h-8 rounded-full"
+                style={{ backgroundColor: selectedColor }}
+              ></div>
+              <p className="text-sm text-muted-foreground">
+                Cliquez sur un créneau de l&apos;emploi du temps pour y ajouter
+                cette {entityType === "subject" ? "matière" : "activité"}.
+              </p>
+            </div>
           </div>
         )}
 
         {eraserMode && (
-          <div className="mt-4 p-3 border rounded-md bg-muted/30">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-medium">Mode effaceur activé</p>
+          <div className="mt-4 border rounded-lg shadow-sm overflow-hidden">
+            <div className="p-3 flex items-center gap-3 bg-red-50 dark:bg-red-950/20">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30">
+                <Eraser className="h-5 w-5 text-red-500 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-base">Mode effaceur activé</h4>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Cliquez sur un créneau de l&apos;emploi du temps pour le vider.
-            </p>
+            <div className="p-3 bg-muted/10 border-t flex items-center gap-2">
+              <div className="w-1 h-8 rounded-full bg-red-400"></div>
+              <p className="text-sm text-muted-foreground">
+                Cliquez sur un créneau de l&apos;emploi du temps pour le vider.
+              </p>
+            </div>
           </div>
         )}
       </div>
