@@ -7,6 +7,7 @@ import {
   type TimeTableData,
 } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
+import { MapPin, User } from "lucide-react";
 import React from "react";
 
 // Type for the selected cell
@@ -285,12 +286,21 @@ function ScheduleCell({
 
   // Extract teacher name from notes if it exists
   const teacherInfo = entry.notes.includes("Professeur:") ? (
-    <div className="text-xs mt-1 opacity-80">
-      {entry.notes
-        .split("\n")
-        .find((line) => line.startsWith("Professeur:"))
-        ?.replace("Professeur:", "Prof:")
-        .trim()}
+    <div
+      className="text-xs mt-1.5 font-medium inline-flex items-center rounded-full px-2 py-0.5"
+      style={{
+        backgroundColor: `${entity.color}15`,
+        color: entity.color,
+      }}
+    >
+      <User className="h-3 w-3 mr-1.5 opacity-70" />
+      <span>
+        {entry.notes
+          .split("\n")
+          .find((line) => line.startsWith("Professeur:"))
+          ?.replace("Professeur:", "")
+          .trim()}
+      </span>
     </div>
   ) : null;
 
@@ -324,19 +334,30 @@ function ScheduleCell({
         <div className="flex flex-col h-full">
           {/* Only show subject name and icon if this is the first cell in a sequence */}
           {!continuesFromPrev && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="font-medium text-sm">{entity.shortName}</div>
               <div className="text-lg">{entity.icon}</div>
             </div>
           )}
 
-          {/* Always show room info */}
-          {entry.room && (
-            <div className="text-xs mt-1 opacity-80">Salle: {entry.room}</div>
-          )}
+          <div className="flex flex-wrap gap-1">
+            {/* Always show room info */}
+            {entry.room && (
+              <div
+                className="text-xs font-medium inline-flex items-center rounded-full px-2 py-0.5"
+                style={{
+                  backgroundColor: `${entity.color}15`,
+                  color: entity.color,
+                }}
+              >
+                <MapPin className="h-3 w-3 mr-1.5 opacity-70" />
+                <span>{entry.room}</span>
+              </div>
+            )}
 
-          {/* Always show teacher info */}
-          {teacherInfo}
+            {/* Always show teacher info */}
+            {teacherInfo}
+          </div>
         </div>
       </div>
     </div>
