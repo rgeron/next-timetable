@@ -90,10 +90,13 @@ export function FileItPanel() {
 
       if (entity) {
         setSelectedColor(entity.color);
-        setShortName(entity.shortName);
+        // Only update shortName if we're not currently editing it
+        if (!isEditingShortName) {
+          setShortName(entity.shortName);
+        }
       }
     }
-  }, [selectedEntityId, entityType, timetableData]);
+  }, [selectedEntityId, entityType, timetableData, isEditingShortName]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -154,7 +157,15 @@ export function FileItPanel() {
   const handleShortNameSave = () => {
     if (selectedEntityId && timetableData && shortName.trim()) {
       updateEntityShortName(selectedEntityId, entityType, shortName.trim());
+
+      // Update the local state to match what we just saved
+      const trimmedShortName = shortName.trim();
+      setShortName(trimmedShortName);
+
       setIsEditingShortName(false);
+
+      // Show success toast
+      toast.success("Abréviation mise à jour");
     }
   };
 
@@ -413,7 +424,13 @@ export function FileItPanel() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setIsEditingShortName(false)}
+                      onClick={() => {
+                        // Reset shortName to the current entity value
+                        if (selectedEntity) {
+                          setShortName(selectedEntity.shortName);
+                        }
+                        setIsEditingShortName(false);
+                      }}
                       className="h-6 px-2"
                     >
                       Annuler
