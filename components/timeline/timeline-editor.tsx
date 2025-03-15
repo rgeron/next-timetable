@@ -9,7 +9,7 @@ import {
   saveTimeTableData,
 } from "@/lib/timetable";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { TimelineSlot } from "./timeline-slot";
 
@@ -23,13 +23,18 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const timeSlotsRef = useRef<TimeSlot[]>([]);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
     // Load timetable data from localStorage
     const data = getTimeTableData();
     setTimetableData(data);
     setTimeSlots([...data.timeSlots]);
+    timeSlotsRef.current = [...data.timeSlots];
     setIsLoading(false);
+    initialLoadRef.current = false;
   }, []);
 
   const handleTimeSlotChange = (
@@ -60,6 +65,117 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
       return updatedSlots;
     });
   };
+
+  // Auto-save with debounce whenever timeSlots change
+  useEffect(() => {
+    // Skip on initial load
+    if (initialLoadRef.current || isLoading || !timetableData) return;
+
+    // Clear any existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set a new timeout for debouncing
+    saveTimeoutRef.current = setTimeout(() => {
+      // Only save if timeSlots have actually changed
+      if (JSON.stringify(timeSlots) === JSON.stringify(timeSlotsRef.current)) {
+        return;
+      }
+
+      // Validate time entries
+      const isValid = timeSlots.every((slot) => {
+        const timeRegex = /^([0-9]|0[0-9]|1[0-9]|2[0-3])h([0-5][0-9])?$/;
+        return (
+          timeRegex.test(slot.end) &&
+          (slot.id === 1 || timeRegex.test(slot.start))
+        );
+      });
+
+      if (!isValid) {
+        toast.error(
+          "Format d'heure invalide. Utilisez le format Xh ou XhYY (ex: 8h ou 8h30)"
+        );
+        return;
+      }
+
+      // Check if slots are in chronological order
+      const isChronological = timeSlots.every((slot) => {
+        const startHour = parseInt(slot.start.split("h")[0]);
+        const startMin =
+          slot.start.includes("h") && slot.start.split("h")[1]
+            ? parseInt(slot.start.split("h")[1])
+            : 0;
+
+        const endHour = parseInt(slot.end.split("h")[0]);
+        const endMin =
+          slot.end.includes("h") && slot.end.split("h")[1]
+            ? parseInt(slot.end.split("h")[1])
+            : 0;
+
+        const startTime = startHour * 60 + startMin;
+        const endTime = endHour * 60 + endMin;
+
+        return endTime >= startTime;
+      });
+
+      if (!isChronological) {
+        toast.error("L'heure de fin doit être postérieure à l'heure de début");
+        return;
+      }
+
+      // Update the schedule to match the new time slots
+      const updatedSchedule = timetableData.schedule.filter(
+        (entry) => entry.timeSlotId <= timeSlots.length
+      );
+
+      // Add new entries for any new time slots
+      const maxDayId = Math.max(...timetableData.days.map((day) => day.id));
+      for (let dayId = 1; dayId <= maxDayId; dayId++) {
+        for (let timeSlotId = 1; timeSlotId <= timeSlots.length; timeSlotId++) {
+          const existingEntry = updatedSchedule.find(
+            (entry) => entry.dayId === dayId && entry.timeSlotId === timeSlotId
+          );
+
+          if (!existingEntry) {
+            updatedSchedule.push({
+              id: updatedSchedule.length + 1,
+              dayId,
+              timeSlotId,
+              type: "",
+              entityId: "",
+              room: "",
+              notes: "",
+              weekType: null,
+              split: { enabled: false },
+            });
+          }
+        }
+      }
+
+      // Save changes
+      const updatedData = {
+        ...timetableData,
+        timeSlots: [...timeSlots],
+        schedule: updatedSchedule,
+      };
+
+      saveTimeTableData(updatedData);
+      setTimetableData(updatedData);
+      timeSlotsRef.current = [...timeSlots];
+      toast.success("Horaires mis à jour automatiquement");
+
+      // Trigger a custom event to notify of timetable data change
+      window.dispatchEvent(new Event("timetableDataChanged"));
+    }, 1000); // 1 second debounce
+
+    // Cleanup function
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [timeSlots]);
 
   const addTimeSlot = () => {
     if (!timeSlots.length) return;
@@ -144,99 +260,6 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
     toast.success("Créneau supprimé");
   };
 
-  const saveChanges = () => {
-    if (!timetableData) return;
-
-    // Validate time entries
-    const isValid = timeSlots.every((slot) => {
-      const timeRegex = /^([0-9]|0[0-9]|1[0-9]|2[0-3])h([0-5][0-9])?$/;
-      return (
-        timeRegex.test(slot.end) &&
-        (slot.id === 1 || timeRegex.test(slot.start))
-      );
-    });
-
-    if (!isValid) {
-      toast.error(
-        "Format d'heure invalide. Utilisez le format Xh ou XhYY (ex: 8h ou 8h30)"
-      );
-      return;
-    }
-
-    // Check if slots are in chronological order by comparing each slot's end time with its start time
-    const isChronological = timeSlots.every((slot) => {
-      const startHour = parseInt(slot.start.split("h")[0]);
-      const startMin =
-        slot.start.includes("h") && slot.start.split("h")[1]
-          ? parseInt(slot.start.split("h")[1])
-          : 0;
-
-      const endHour = parseInt(slot.end.split("h")[0]);
-      const endMin =
-        slot.end.includes("h") && slot.end.split("h")[1]
-          ? parseInt(slot.end.split("h")[1])
-          : 0;
-
-      const startTime = startHour * 60 + startMin;
-      const endTime = endHour * 60 + endMin;
-
-      return endTime >= startTime;
-    });
-
-    if (!isChronological) {
-      toast.error("L'heure de fin doit être postérieure à l'heure de début");
-      return;
-    }
-
-    // Also need to update the schedule to match the new time slots
-    const updatedSchedule = timetableData.schedule.filter(
-      (entry) => entry.timeSlotId <= timeSlots.length
-    );
-
-    // Add new entries for any new time slots
-    const maxDayId = Math.max(...timetableData.days.map((day) => day.id));
-    for (let dayId = 1; dayId <= maxDayId; dayId++) {
-      for (let timeSlotId = 1; timeSlotId <= timeSlots.length; timeSlotId++) {
-        const existingEntry = updatedSchedule.find(
-          (entry) => entry.dayId === dayId && entry.timeSlotId === timeSlotId
-        );
-
-        if (!existingEntry) {
-          updatedSchedule.push({
-            id: updatedSchedule.length + 1,
-            dayId,
-            timeSlotId,
-            type: "",
-            entityId: "",
-            room: "",
-            notes: "",
-            weekType: null,
-            split: { enabled: false },
-          });
-        }
-      }
-    }
-
-    // Save changes
-    const updatedData = {
-      ...timetableData,
-      timeSlots: [...timeSlots],
-      schedule: updatedSchedule,
-    };
-    saveTimeTableData(updatedData);
-    setTimetableData(updatedData);
-    toast.success("Horaires mis à jour avec succès");
-
-    // Trigger a custom event to notify of timetable data change
-    window.dispatchEvent(new Event("timetableDataChanged"));
-  };
-
-  const resetChanges = () => {
-    if (!timetableData) return;
-    setTimeSlots([...timetableData.timeSlots]);
-    toast.info("Modifications annulées");
-  };
-
   if (isLoading || !timetableData) {
     return (
       <div
@@ -265,7 +288,7 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
         <p className="text-sm text-muted-foreground">
           Chaque point sur la ligne représente le début ou la fin d&apos;un
           créneau. Ajustez les horaires en modifiant la valeur à côté de chaque
-          point.
+          point. Les modifications sont enregistrées automatiquement.
         </p>
       )}
 
@@ -346,18 +369,6 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Actions */}
-      <div
-        className={`flex justify-end space-x-2 pt-2 ${compact ? "mt-4" : ""}`}
-      >
-        <Button variant="outline" size="sm" onClick={resetChanges}>
-          Annuler
-        </Button>
-        <Button size="sm" onClick={saveChanges}>
-          Enregistrer
-        </Button>
       </div>
     </div>
   );
