@@ -1,5 +1,6 @@
 "use client";
 
+import { Toggle } from "@/components/ui/toggle";
 import {
   getEntityById,
   getScheduleEntry,
@@ -7,8 +8,70 @@ import {
   type TimeTableData,
 } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
-import { MapPin, User } from "lucide-react";
-import React from "react";
+import { MapPin, Printer, User } from "lucide-react";
+import React, { useEffect, useState } from "react";
+
+// Print-specific styles for landscape A4
+const printStyles = `
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .timetable-container {
+    width: 100% !important;
+    height: auto !important;
+    transform: none !important;
+    font-size: 10pt !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .timetable-grid {
+    width: 100% !important;
+  }
+  
+  .timetable-cell {
+    page-break-inside: avoid;
+  }
+  
+  .timetable-header {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+    font-size: 11pt !important;
+  }
+  
+  .timetable-time {
+    background-color: #f9f9f9 !important;
+    font-size: 10pt !important;
+  }
+  
+  /* Ensure colors print correctly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+`;
 
 // Type for the selected cell
 type SelectedCell = {
@@ -23,7 +86,11 @@ function timeToMinutes(timeStr: string): number {
 }
 
 // Function to calculate slot height based on duration
-function calculateSlotHeight(start: string, end: string): number {
+function calculateSlotHeight(
+  start: string,
+  end: string,
+  isA4Preview: boolean = false
+): number {
   const startMinutes = timeToMinutes(start);
   const endMinutes = timeToMinutes(end);
 
@@ -31,7 +98,9 @@ function calculateSlotHeight(start: string, end: string): number {
   const durationMinutes = endMinutes - startMinutes;
 
   // Base height is 20px per 15 minutes (adjust as needed)
-  return Math.max(durationMinutes * (20 / 15), 40); // Minimum height of 40px
+  // For A4 preview, reduce the height by 30%
+  const baseHeight = isA4Preview ? 14 : 20;
+  return Math.max(durationMinutes * (baseHeight / 15), isA4Preview ? 28 : 40); // Minimum height adjusted for A4
 }
 
 export function Timetable({
@@ -44,6 +113,20 @@ export function Timetable({
   currentStep: string;
 }) {
   const { timetableData, isLoading } = useTimetable();
+  const [isA4Preview, setIsA4Preview] = useState(false);
+
+  // Add print styles to the document
+  useEffect(() => {
+    // Create style element
+    const styleElement = document.createElement("style");
+    styleElement.innerHTML = printStyles;
+    document.head.appendChild(styleElement);
+
+    // Cleanup on unmount
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
 
   if (isLoading || !timetableData) {
     return (
@@ -73,6 +156,12 @@ export function Timetable({
     return entry1.entityId === entry2.entityId;
   };
 
+  // A4 paper dimensions (in pixels at 96 DPI)
+  // A4 is 210mm × 297mm, which is roughly 794px × 1123px at 96 DPI
+  // For landscape, we swap width and height
+  const a4Width = 1123; // Landscape width (was height in portrait)
+  const a4Height = 794; // Landscape height (was width in portrait)
+
   return (
     <div className="w-full p-4">
       <div className="mb-4 flex flex-col items-center justify-center">
@@ -92,19 +181,55 @@ export function Timetable({
         </div>
       </div>
 
+      {/* A4 Preview Toggle */}
+      <div className="flex justify-end mb-4 items-center gap-2 no-print">
+        <Toggle
+          pressed={isA4Preview}
+          onPressedChange={setIsA4Preview}
+          aria-label="Toggle A4 preview"
+          className="data-[state=on]:bg-primary"
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Format A4 Paysage
+        </Toggle>
+
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium px-3 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Printer className="h-4 w-4" />
+          Imprimer
+        </button>
+      </div>
+
+      {/* A4 Preview Container */}
       <div
-        className="border rounded-lg overflow-hidden"
+        className={`border rounded-lg overflow-hidden mx-auto timetable-container ${
+          isA4Preview ? "shadow-lg" : ""
+        }`}
         style={{
           fontFamily: settings?.fontFamily || "inherit",
           borderColor: settings?.borderColor || "inherit",
           borderWidth: settings?.borderWidth
             ? `${settings.borderWidth}px`
             : "1px",
+          ...(isA4Preview && {
+            width: `${a4Width * 0.8}px`, // 80% of A4 landscape width
+            height: `${a4Height * 0.8}px`, // 80% of A4 landscape height
+            maxWidth: "100%",
+            transform: "scale(0.9)",
+            transformOrigin: "top center",
+            fontSize: "0.85rem",
+          }),
         }}
       >
-        <div className="grid" style={{ gridTemplateColumns }}>
+        <div className="grid timetable-grid" style={{ gridTemplateColumns }}>
           {/* Header cell for time column */}
-          <div className="p-2 bg-muted/20 border-b border-r font-medium text-center">
+          <div
+            className={`p-2 bg-muted/20 border-b border-r font-medium text-center timetable-header ${
+              isA4Preview ? "text-xs" : ""
+            }`}
+          >
             Horaire
           </div>
 
@@ -112,7 +237,9 @@ export function Timetable({
           {timetableData.days.map((day) => (
             <div
               key={day.id}
-              className="p-2 bg-muted/20 border-b font-medium text-center"
+              className={`p-2 bg-muted/20 border-b font-medium text-center timetable-header ${
+                isA4Preview ? "text-xs" : ""
+              }`}
             >
               {day.name.charAt(0).toUpperCase() + day.name.slice(1)}
             </div>
@@ -120,17 +247,33 @@ export function Timetable({
 
           {/* Time slots and schedule cells */}
           {timetableData.timeSlots.map((timeSlot, timeSlotIndex) => {
-            const height = calculateSlotHeight(timeSlot.start, timeSlot.end);
+            const height = calculateSlotHeight(
+              timeSlot.start,
+              timeSlot.end,
+              isA4Preview
+            );
 
             return (
               <React.Fragment key={timeSlot.id}>
                 {/* Time column */}
                 <div
-                  className="p-2 bg-muted/10 border-b border-r flex flex-col justify-center items-center"
+                  className={`p-2 bg-muted/10 border-b border-r flex flex-col justify-center items-center timetable-time ${
+                    isA4Preview ? "text-xs" : ""
+                  }`}
                   style={{ height: `${height}px` }}
                 >
-                  <div className="text-sm font-medium">{timeSlot.start}</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div
+                    className={`${
+                      isA4Preview ? "text-xs" : "text-sm"
+                    } font-medium`}
+                  >
+                    {timeSlot.start}
+                  </div>
+                  <div
+                    className={`${
+                      isA4Preview ? "text-xs" : "text-xs"
+                    } text-muted-foreground`}
+                  >
                     {timeSlot.end}
                   </div>
                 </div>
@@ -180,6 +323,7 @@ export function Timetable({
                       isPersonalizeStep={currentStep === "personnaliser"}
                       continuesFromPrev={continuesFromPrev}
                       continuesToNext={continuesToNext}
+                      isA4Preview={isA4Preview}
                     />
                   );
                 })}
@@ -203,6 +347,7 @@ function ScheduleCell({
   isPersonalizeStep,
   continuesFromPrev,
   continuesToNext,
+  isA4Preview = false,
 }: {
   entry?: ScheduleEntry | null;
   timetableData: TimeTableData;
@@ -214,6 +359,7 @@ function ScheduleCell({
   isPersonalizeStep: boolean;
   continuesFromPrev?: boolean;
   continuesToNext?: boolean;
+  isA4Preview?: boolean;
 }) {
   const { addToTimetableSlot } = useTimetable();
 
@@ -243,7 +389,7 @@ function ScheduleCell({
   if (!entry || !entry.entityId) {
     return (
       <div
-        className={`p-0 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer ${
+        className={`p-0 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer timetable-cell ${
           isSelected ? "ring-2 ring-primary" : ""
         } relative overflow-hidden`}
         style={{ height: `${height}px` }}
@@ -252,12 +398,20 @@ function ScheduleCell({
       >
         {entry?.tag ? (
           <div className="w-full h-full p-2 flex items-center justify-center">
-            <div className="px-2 py-1 bg-muted rounded-md text-sm font-medium">
+            <div
+              className={`px-2 py-1 bg-muted rounded-md ${
+                isA4Preview ? "text-xs" : "text-sm"
+              } font-medium`}
+            >
               {entry.tag}
             </div>
           </div>
         ) : (
-          <div className="w-full h-full p-2 flex items-center justify-center text-muted-foreground text-sm">
+          <div
+            className={`w-full h-full p-2 flex items-center justify-center text-muted-foreground ${
+              isA4Preview ? "text-xs" : "text-sm"
+            }`}
+          >
             -
           </div>
         )}
@@ -270,14 +424,18 @@ function ScheduleCell({
   if (!entity) {
     return (
       <div
-        className={`p-0 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer ${
+        className={`p-0 border-b border-l hover:bg-muted/40 transition-colors cursor-pointer timetable-cell ${
           isSelected ? "ring-2 ring-primary" : ""
         } relative overflow-hidden`}
         style={{ height: `${height}px` }}
         data-schedule-id={entry.id}
         onClick={handleCellClick}
       >
-        <div className="w-full h-full p-2 flex items-center justify-center text-muted-foreground text-sm">
+        <div
+          className={`w-full h-full p-2 flex items-center justify-center text-muted-foreground ${
+            isA4Preview ? "text-xs" : "text-sm"
+          }`}
+        >
           {entry.entityId}
         </div>
       </div>
@@ -287,13 +445,17 @@ function ScheduleCell({
   // Extract teacher name from notes if it exists
   const teacherInfo = entry.notes.includes("Professeur:") ? (
     <div
-      className="text-xs mt-1.5 font-medium inline-flex items-center rounded-full px-2 py-0.5"
+      className={`${
+        isA4Preview ? "text-[0.65rem]" : "text-xs"
+      } mt-1.5 font-medium inline-flex items-center rounded-full px-2 py-0.5`}
       style={{
         backgroundColor: `${entity.color}15`,
         color: entity.color,
       }}
     >
-      <User className="h-3 w-3 mr-1.5 opacity-70" />
+      <User
+        className={`${isA4Preview ? "h-2 w-2" : "h-3 w-3"} mr-1.5 opacity-70`}
+      />
       <span>
         {entry.notes
           .split("\n")
@@ -309,7 +471,7 @@ function ScheduleCell({
 
   return (
     <div
-      className={`p-0 ${borderClasses} hover:bg-opacity-90 transition-colors cursor-pointer ${
+      className={`p-0 ${borderClasses} hover:bg-opacity-90 transition-colors cursor-pointer timetable-cell ${
         isSelected ? "ring-2 ring-primary" : ""
       } relative overflow-hidden`}
       style={{
@@ -326,7 +488,7 @@ function ScheduleCell({
 
       {/* Main content with semi-transparent background */}
       <div
-        className="h-full w-full p-2 pl-3"
+        className={`h-full w-full ${isA4Preview ? "p-1 pl-2" : "p-2 pl-3"}`}
         style={{
           backgroundColor: entity.color ? `${entity.color}25` : "#f0f0f0",
         }}
@@ -335,8 +497,14 @@ function ScheduleCell({
           {/* Only show subject name and icon if this is the first cell in a sequence */}
           {!continuesFromPrev && (
             <div className="flex items-center justify-between mb-1.5">
-              <div className="font-medium text-sm">{entity.shortName}</div>
-              <div className="text-lg">{entity.icon}</div>
+              <div
+                className={`font-medium ${isA4Preview ? "text-xs" : "text-sm"}`}
+              >
+                {entity.shortName}
+              </div>
+              <div className={`${isA4Preview ? "text-base" : "text-lg"}`}>
+                {entity.icon}
+              </div>
             </div>
           )}
 
@@ -346,13 +514,19 @@ function ScheduleCell({
               {/* Show room info */}
               {entry.room && (
                 <div
-                  className="text-xs font-medium inline-flex items-center rounded-full px-2 py-0.5"
+                  className={`${
+                    isA4Preview ? "text-[0.65rem]" : "text-xs"
+                  } font-medium inline-flex items-center rounded-full px-2 py-0.5`}
                   style={{
                     backgroundColor: `${entity.color}15`,
                     color: entity.color,
                   }}
                 >
-                  <MapPin className="h-3 w-3 mr-1.5 opacity-70" />
+                  <MapPin
+                    className={`${
+                      isA4Preview ? "h-2 w-2" : "h-3 w-3"
+                    } mr-1.5 opacity-70`}
+                  />
                   <span>{entry.room}</span>
                 </div>
               )}

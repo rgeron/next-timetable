@@ -36,12 +36,14 @@ export function DashboardLayout(props: { children?: React.ReactNode }) {
         />
 
         {/* Main content - Toujours afficher l'emploi du temps */}
-        <main className="flex-1 overflow-auto p-6">
-          <Timetable
-            onCellSelect={setSelectedCell}
-            selectedCell={selectedCell}
-            currentStep={currentStep}
-          />
+        <main className="flex-1 overflow-auto p-4 flex justify-center">
+          <div className="w-full max-w-[1200px]">
+            <Timetable
+              onCellSelect={setSelectedCell}
+              selectedCell={selectedCell}
+              currentStep={currentStep}
+            />
+          </div>
         </main>
       </div>
     </div>
