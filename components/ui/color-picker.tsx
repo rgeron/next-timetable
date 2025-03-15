@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -39,26 +38,11 @@ export function ColorPicker({
     onChange(newColor);
   };
 
-  const handleComplete = () => {
-    // Apply the final color
-    onChange(localColor);
-
-    if (onChangeComplete) {
-      onChangeComplete();
-    }
-    setIsOpen(false);
-  };
-
   // When the popover closes, ensure the color is applied
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    if (!open) {
-      // Apply the final color when closing
-      onChange(localColor);
-
-      if (onChangeComplete) {
-        onChangeComplete();
-      }
+    if (!open && onChangeComplete) {
+      onChangeComplete();
     }
   };
 
@@ -82,9 +66,6 @@ export function ColorPicker({
               className="flex-1"
             />
           </div>
-          <Button size="sm" className="w-full" onClick={handleComplete}>
-            Appliquer
-          </Button>
         </div>
       </PopoverContent>
     </Popover>

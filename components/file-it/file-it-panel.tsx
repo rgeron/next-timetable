@@ -133,11 +133,10 @@ export function FileItPanel() {
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
-  };
 
-  const handleColorChangeComplete = () => {
+    // Apply color change immediately if we have an entity selected
     if (selectedEntityId && timetableData) {
-      updateEntityColor(selectedEntityId, entityType, selectedColor);
+      updateEntityColor(selectedEntityId, entityType, color);
     }
   };
 
@@ -374,7 +373,6 @@ export function FileItPanel() {
                 <ColorPicker
                   color={selectedColor}
                   onChange={handleColorChange}
-                  onChangeComplete={handleColorChangeComplete}
                 />
 
                 <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
