@@ -17,13 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  getScheduleEntry,
-  saveTimeTableData,
-  updateScheduleEntry,
-} from "@/lib/timetable";
+import { getScheduleEntry, saveTimeTableData } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
 import { MapPin, Paintbrush, Palette, Square, Type, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -75,7 +70,6 @@ export function PersonalizationPanel({
   const [roomNumber, setRoomNumber] = useState("");
   const [selectedColor, setSelectedColor] = useState("#3498db");
   const [selectedIcon, setSelectedIcon] = useState("📚");
-  const [showTeacher, setShowTeacher] = useState(true);
   const [currentEntityId, setCurrentEntityId] = useState<string | null>(null);
   const [subjectTeachers, setSubjectTeachers] = useState<
     Record<string, string>
@@ -142,24 +136,12 @@ export function PersonalizationPanel({
         }
         setCurrentEntityId(entity.id);
 
-        // Check if teacher should be displayed for this entry
-        const showTeacherMatch = entry.notes.match(
-          /ShowTeacher: (true|false)(?:\n|$)/
-        );
-
-        // Default to false when switching to a new cell
-        const shouldShowTeacher = showTeacherMatch
-          ? showTeacherMatch[1] === "true"
-          : false;
-
-        setShowTeacher(shouldShowTeacher);
-
         // Check if this subject has a teacher associated
         if (subjectTeachers[entity.id] && !teacherNameModified) {
           setTeacherName(subjectTeachers[entity.id]);
         } else if (!teacherNameModified) {
           // Extract teacher name from notes if it exists
-          const teacherMatch = entry.notes.match(/Professeur: (.+?)(?:\n|$)/);
+          const teacherMatch = entry.notes.match(/Professeur:\s*(.+?)(?:\n|$)/);
           if (teacherMatch && teacherMatch[1]) {
             setTeacherName(teacherMatch[1]);
 
@@ -211,29 +193,18 @@ export function PersonalizationPanel({
     setTitleModified(false);
   };
 
-  // Save cell-specific settings
-  const saveCellSettings = () => {
-    if (!selectedCell || !timetableData || !currentEntityId) return;
+  // Handle teacher name change
+  const handleTeacherNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTeacherName(e.target.value);
+    setTeacherNameModified(true);
 
-    const entry = getScheduleEntry(
-      timetableData,
-      selectedCell.dayId,
-      selectedCell.timeSlotId
-    );
-
-    if (entry) {
-      // Update notes to include teacher name and display preference
-      let notes = entry.notes;
-
-      // Remove existing teacher info and display preference if present
-      notes = notes.replace(/Professeur: .+?(?:\n|$)/, "");
-      notes = notes.replace(/ShowTeacher: (true|false)(?:\n|$)/, "");
-
-      // If teacher name is provided, save it for this subject
-      if (teacherName) {
+    // Apply changes automatically after a short delay
+    setTimeout(() => {
+      if (currentEntityId && timetableData) {
+        // Save this teacher for the subject
         const updatedTeachers = {
           ...subjectTeachers,
-          [currentEntityId]: teacherName,
+          [currentEntityId]: e.target.value,
         };
         setSubjectTeachers(updatedTeachers);
         localStorage.setItem(
@@ -241,103 +212,28 @@ export function PersonalizationPanel({
           JSON.stringify(updatedTeachers)
         );
 
-        // Add teacher to notes regardless of showTeacher setting
-        notes = `Professeur: ${teacherName}\n${notes}`;
+        // Apply to all instances of this subject
+        applyTeacherToAllInstances(e.target.value);
+
+        toast.success("Professeur mis à jour");
       }
-
-      // Always add the ShowTeacher preference
-      notes = `ShowTeacher: ${showTeacher}\n${notes}`;
-
-      // Update the entry
-      updateScheduleEntry(
-        timetableData,
-        selectedCell.dayId,
-        selectedCell.timeSlotId,
-        {
-          room: roomNumber,
-          notes: notes.trim(),
-        }
-      );
-
-      // Update entity color and icon
-      if (entry.entityId) {
-        const entityType = entry.entityId.startsWith("s-")
-          ? "subject"
-          : "activity";
-
-        // Update color and icon in the context
-        updateEntityColor(entry.entityId, entityType, selectedColor);
-        updateEntityIcon(entry.entityId, entityType, selectedIcon);
-
-        // No need to manually update the data here as updateEntityColor and updateEntityIcon
-        // already save the data to localStorage and update the context
-      }
-
-      toast.success("Modifications enregistrées");
-
-      // Reset modification flags after save
-      setTeacherNameModified(false);
-      setRoomNumberModified(false);
-      setIconModified(false);
-    }
-  };
-
-  // Apply teacher to all instances of this subject
-  const applyTeacherToAllInstances = () => {
-    if (!timetableData || !currentEntityId || !teacherName) return;
-
-    const updatedData = { ...timetableData };
-    let changesMade = false;
-
-    // Update all schedule entries with this entity ID
-    updatedData.schedule = updatedData.schedule.map((entry) => {
-      if (entry.entityId === currentEntityId) {
-        let notes = entry.notes;
-
-        // Remove existing teacher info if present
-        notes = notes.replace(/Professeur: .+?(?:\n|$)/, "");
-
-        // Add teacher info regardless of showTeacher setting
-        notes = `Professeur: ${teacherName}\n${notes}`;
-        changesMade = true;
-
-        return {
-          ...entry,
-          notes: notes.trim(),
-        };
-      }
-      return entry;
-    });
-
-    if (changesMade) {
-      // Save the updated teacher for this subject
-      const updatedTeachers = {
-        ...subjectTeachers,
-        [currentEntityId]: teacherName,
-      };
-      setSubjectTeachers(updatedTeachers);
-      localStorage.setItem("subjectTeachers", JSON.stringify(updatedTeachers));
-
-      // Save the updated timetable data
-      saveTimeTableData(updatedData);
-      toast.success(
-        "Professeur appliqué à toutes les instances de cette matière"
-      );
-    } else {
-      toast.info("Aucune modification n'a été nécessaire");
-    }
-  };
-
-  // Handle teacher name change
-  const handleTeacherNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTeacherName(e.target.value);
-    setTeacherNameModified(true);
+    }, 500);
   };
 
   // Handle room number change
   const handleRoomNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRoomNumber(e.target.value);
     setRoomNumberModified(true);
+
+    // Apply changes automatically after a short delay
+    setTimeout(() => {
+      if (currentEntityId && timetableData) {
+        // Apply to all instances of this subject
+        applyRoomToAllInstances(e.target.value);
+
+        toast.success("Salle mise à jour");
+      }
+    }, 500);
   };
 
   // Handle title change
@@ -347,11 +243,6 @@ export function PersonalizationPanel({
       title: e.target.value,
     });
     setTitleModified(true);
-  };
-
-  // Handle show teacher toggle
-  const handleShowTeacherToggle = (checked: boolean) => {
-    setShowTeacher(checked);
   };
 
   // Handle color change
@@ -381,6 +272,79 @@ export function PersonalizationPanel({
     );
   };
 
+  // Apply teacher to all instances of this subject (now private helper function)
+  const applyTeacherToAllInstances = (teacherValue = teacherName) => {
+    if (!timetableData || !currentEntityId || !teacherValue) return;
+
+    const updatedData = { ...timetableData };
+    let changesMade = false;
+
+    // Update all schedule entries with this entity ID
+    updatedData.schedule = updatedData.schedule.map((entry) => {
+      if (entry.entityId === currentEntityId) {
+        let notes = entry.notes;
+
+        // Remove existing teacher info if present
+        notes = notes.replace(/Professeur:\s*.+?(?:\n|$)/, "");
+
+        // Add teacher info
+        notes = `Professeur: ${teacherValue}\n${notes}`;
+
+        changesMade = true;
+
+        return {
+          ...entry,
+          notes: notes.trim(),
+        };
+      }
+      return entry;
+    });
+
+    if (changesMade) {
+      // Save the updated teacher for this subject
+      const updatedTeachers = {
+        ...subjectTeachers,
+        [currentEntityId]: teacherValue,
+      };
+      setSubjectTeachers(updatedTeachers);
+      localStorage.setItem("subjectTeachers", JSON.stringify(updatedTeachers));
+
+      // Save the updated timetable data
+      saveTimeTableData(updatedData);
+
+      // Trigger a custom event to notify of timetable data change
+      window.dispatchEvent(new Event("timetableDataChanged"));
+    }
+  };
+
+  // Apply room to all instances of this subject
+  const applyRoomToAllInstances = (roomValue = roomNumber) => {
+    if (!timetableData || !currentEntityId || !roomValue) return;
+
+    const updatedData = { ...timetableData };
+    let changesMade = false;
+
+    // Update all schedule entries with this entity ID
+    updatedData.schedule = updatedData.schedule.map((entry) => {
+      if (entry.entityId === currentEntityId) {
+        changesMade = true;
+        return {
+          ...entry,
+          room: roomValue,
+        };
+      }
+      return entry;
+    });
+
+    if (changesMade) {
+      // Save the updated timetable data
+      saveTimeTableData(updatedData);
+
+      // Trigger a custom event to notify of timetable data change
+      window.dispatchEvent(new Event("timetableDataChanged"));
+    }
+  };
+
   return (
     <div className="space-y-6">
       {selectedCell ? (
@@ -407,7 +371,9 @@ export function PersonalizationPanel({
                     <ColorPicker
                       color={selectedColor}
                       onChange={handleColorChange}
-                      onChangeComplete={saveCellSettings}
+                      onChangeComplete={() => {
+                        toast.success("Couleur mise à jour");
+                      }}
                     />
                   </div>
                 </div>
@@ -434,6 +400,19 @@ export function PersonalizationPanel({
                           onSelectIcon={(icon) => {
                             setSelectedIcon(icon);
                             setIconModified(true);
+                            if (currentEntityId && timetableData) {
+                              const entityType = currentEntityId.startsWith(
+                                "s-"
+                              )
+                                ? "subject"
+                                : "activity";
+                              updateEntityIcon(
+                                currentEntityId,
+                                entityType,
+                                icon
+                              );
+                              toast.success("Icône mise à jour");
+                            }
                           }}
                           onClose={() => {}}
                         />
@@ -461,26 +440,6 @@ export function PersonalizationPanel({
                     placeholder="Entrez le nom du professeur"
                   />
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="show-teacher"
-                    checked={showTeacher}
-                    onCheckedChange={handleShowTeacherToggle}
-                  />
-                  <Label htmlFor="show-teacher">Afficher le professeur</Label>
-                </div>
-
-                {currentEntityId && teacherName && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={applyTeacherToAllInstances}
-                  >
-                    Appliquer à toutes les instances
-                  </Button>
-                )}
               </div>
             </div>
 
@@ -502,10 +461,6 @@ export function PersonalizationPanel({
               </div>
             </div>
           </div>
-
-          <Button className="w-full" onClick={saveCellSettings}>
-            Enregistrer les modifications
-          </Button>
         </div>
       ) : (
         <div className="space-y-4">

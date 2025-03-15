@@ -283,25 +283,16 @@ function ScheduleCell({
     );
   }
 
-  // Check if teacher should be displayed
-  const showTeacherMatch = entry.notes.match(
-    /ShowTeacher: (true|false)(?:\n|$)/
-  );
-  const shouldShowTeacher = showTeacherMatch
-    ? showTeacherMatch[1] === "true"
-    : false;
-
-  // Extract teacher name from notes if it exists and should be shown
-  const teacherInfo =
-    shouldShowTeacher && entry.notes.includes("Professeur:") ? (
-      <div className="text-xs mt-1 opacity-80">
-        {entry.notes
-          .split("\n")
-          .find((line) => line.startsWith("Professeur:"))
-          ?.replace("Professeur:", "Prof:")
-          .trim()}
-      </div>
-    ) : null;
+  // Extract teacher name from notes if it exists
+  const teacherInfo = entry.notes.includes("Professeur:") ? (
+    <div className="text-xs mt-1 opacity-80">
+      {entry.notes
+        .split("\n")
+        .find((line) => line.startsWith("Professeur:"))
+        ?.replace("Professeur:", "Prof:")
+        .trim()}
+    </div>
+  ) : null;
 
   // Determine border classes based on continuity
   const borderClasses = `border-l ${!continuesToNext ? "border-b" : ""}`;
@@ -340,12 +331,12 @@ function ScheduleCell({
           )}
 
           {/* Always show room info */}
-          {entry.room && !continuesFromPrev && (
+          {entry.room && (
             <div className="text-xs mt-1 opacity-80">Salle: {entry.room}</div>
           )}
 
-          {/* Show teacher info only if enabled and not continuing from previous */}
-          {!continuesFromPrev && teacherInfo}
+          {/* Always show teacher info */}
+          {teacherInfo}
         </div>
       </div>
     </div>
