@@ -2,6 +2,7 @@
 
 import { IconPicker } from "@/components/file-it/icon-picker";
 import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -406,46 +407,41 @@ export function PersonalizationPanel({
               <div className="space-y-2">
                 <Label htmlFor="cell-color">Couleur</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="cell-color"
-                    type="color"
-                    value={selectedColor}
-                    onChange={(e) => setSelectedColor(e.target.value)}
-                    className="w-12 h-8 p-1"
-                  />
-                  <Input
-                    type="text"
-                    value={selectedColor}
-                    onChange={(e) => setSelectedColor(e.target.value)}
-                    className="flex-1"
+                  <ColorPicker
+                    color={selectedColor}
+                    onChange={setSelectedColor}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="cell-icon">Icône</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full flex justify-between items-center"
-                      id="cell-icon"
-                    >
-                      <span>Sélectionner une icône</span>
-                      <span className="text-xl">{selectedIcon}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-3">
-                    <IconPicker
-                      selectedIcon={selectedIcon}
-                      onSelectIcon={(icon) => {
-                        setSelectedIcon(icon);
-                        setIconModified(true);
-                      }}
-                      onClose={() => {}}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-10 h-10 p-0 flex items-center justify-center"
+                      >
+                        {selectedIcon ? (
+                          <span className="text-xl">{selectedIcon}</span>
+                        ) : (
+                          <Palette className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <IconPicker
+                        selectedIcon={selectedIcon}
+                        onSelectIcon={(icon) => {
+                          setSelectedIcon(icon);
+                          setIconModified(true);
+                        }}
+                        onClose={() => {}}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </TabsContent>
 
@@ -545,28 +541,14 @@ export function PersonalizationPanel({
               <div className="space-y-2">
                 <Label htmlFor="border-color">Couleur de bordure</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="border-color"
-                    type="color"
-                    value={globalSettings.borderColor}
-                    onChange={(e) =>
+                  <ColorPicker
+                    color={globalSettings.borderColor}
+                    onChange={(color) =>
                       setGlobalSettings({
                         ...globalSettings,
-                        borderColor: e.target.value,
+                        borderColor: color,
                       })
                     }
-                    className="w-12 h-8 p-1"
-                  />
-                  <Input
-                    type="text"
-                    value={globalSettings.borderColor}
-                    onChange={(e) =>
-                      setGlobalSettings({
-                        ...globalSettings,
-                        borderColor: e.target.value,
-                      })
-                    }
-                    className="flex-1"
                   />
                 </div>
               </div>

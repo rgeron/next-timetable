@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -11,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { useTimetable } from "@/lib/timetable-context";
 import { Eraser } from "lucide-react";
 import { useEffect, useState } from "react";
-import { HexColorPicker } from "react-colorful";
 import { toast } from "sonner";
 import { IconPicker } from "./icon-picker";
 
@@ -42,7 +42,6 @@ export function FileItPanel() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddNew, setShowAddNew] = useState(false);
-  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [shortName, setShortName] = useState("");
@@ -139,7 +138,6 @@ export function FileItPanel() {
   const handleColorChangeComplete = () => {
     if (selectedEntityId && timetableData) {
       updateEntityColor(selectedEntityId, entityType, selectedColor);
-      setColorPickerOpen(false);
     }
   };
 
@@ -373,33 +371,11 @@ export function FileItPanel() {
                 sélectionnée:
               </p>
               <div className="flex items-center gap-2">
-                <Popover
-                  open={colorPickerOpen}
-                  onOpenChange={setColorPickerOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer"
-                      style={{ backgroundColor: selectedColor }}
-                      aria-label="Changer la couleur"
-                    />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-3">
-                    <div className="space-y-3">
-                      <HexColorPicker
-                        color={selectedColor}
-                        onChange={handleColorChange}
-                      />
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={handleColorChangeComplete}
-                      >
-                        Appliquer
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <ColorPicker
+                  color={selectedColor}
+                  onChange={handleColorChange}
+                  onChangeComplete={handleColorChangeComplete}
+                />
 
                 <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
                   <PopoverTrigger asChild>
@@ -467,10 +443,6 @@ export function FileItPanel() {
                   </Button>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                L&apos;abréviation est utilisée dans l&apos;emploi du temps pour
-                économiser de l&apos;espace.
-              </p>
             </div>
 
             <p className="text-sm text-muted-foreground mt-2">

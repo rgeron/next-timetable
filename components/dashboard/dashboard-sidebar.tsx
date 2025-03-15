@@ -127,10 +127,6 @@ function renderSidebarContent(
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Horaires</h2>
-          <p className="text-sm text-sidebar-foreground/80 mb-4">
-            Ajustez les horaires de début et de fin pour chaque créneau de votre
-            emploi du temps.
-          </p>
 
           <div className="flex items-center text-sm font-medium mb-2">
             <Clock className="w-4 h-4 mr-2" />
