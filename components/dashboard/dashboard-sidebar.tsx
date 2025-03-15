@@ -94,8 +94,26 @@ function renderSidebarContent(
       };
 
       return (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h2 className="text-xl font-semibold">Bienvenue</h2>
+
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-primary/20">
+              <img
+                src="/images/papou.jpg"
+                alt="Papou"
+                className="object-cover w-full h-full"
+              />
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-sidebar-foreground/80 italic">
+                Ce site est créé en l&apos;honneur de Papou, dont la sagesse et
+                la bienveillance continuent de nous inspirer.
+              </p>
+            </div>
+          </div>
+
           <p className="text-sm text-sidebar-foreground/80">
             Commencez à personnaliser votre emploi du temps. Suivez les étapes
             pour créer votre planning idéal.
