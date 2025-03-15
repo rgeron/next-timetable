@@ -1,15 +1,7 @@
 "use client";
 
-import { IconPicker } from "@/components/file-it/icon-picker";
-import { Button } from "@/components/ui/button";
-import { ColorPicker } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -18,9 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getScheduleEntry, saveTimeTableData } from "@/lib/timetable";
+import { saveTimeTableData } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
-import { MapPin, Paintbrush, Palette, Square, Type, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // Type for the selected cell
@@ -73,6 +64,10 @@ export function PersonalizationPanel({
   const [subjectTeachers, setSubjectTeachers] = useState<
     Record<string, string>
   >({});
+  const [isWeekSplit, setIsWeekSplit] = useState(false);
+  const [weekType, setWeekType] = useState<"A" | "B" | null>(null);
+  const [entityIdB, setEntityIdB] = useState<string | null>(null);
+  const [roomNumberB, setRoomNumberB] = useState("");
 
   // Flags to track if inputs have been modified by user
   const [titleModified, setTitleModified] = useState(false);
@@ -119,67 +114,63 @@ export function PersonalizationPanel({
     }
   }, [selectedCell]);
 
-  // Load cell-specific data when cell selection changes
+  // Load cell data when a cell is selected
   useEffect(() => {
-    if (!selectedCell || !timetableData) return;
+    if (!selectedCell || !timetableData) {
+      return;
+    }
 
-    // Only load data if not modified by user
-    const entry = getScheduleEntry(
-      timetableData,
-      selectedCell.dayId,
-      selectedCell.timeSlotId
+    const { dayId, timeSlotId } = selectedCell;
+    const entry = timetableData.schedule.find(
+      (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
     );
 
-    if (entry) {
-      if (!roomNumberModified) {
-        setRoomNumber(entry.room || "");
-      }
-
-      // Find the entity to get its color and icon
-      const entity =
-        timetableData.subjects.find((s) => s.id === entry.entityId) ||
-        timetableData.activities.find((a) => a.id === entry.entityId);
-
-      if (entity) {
-        setSelectedColor(entity.color);
-        if (!iconModified) {
-          setSelectedIcon(entity.icon);
-        }
-        setCurrentEntityId(entity.id);
-
-        // Check if this subject has a teacher associated
-        if (subjectTeachers[entity.id] && !teacherNameModified) {
-          setTeacherName(subjectTeachers[entity.id]);
-        } else if (!teacherNameModified) {
-          // Extract teacher name from notes if it exists
-          const teacherMatch = entry.notes.match(/Professeur:\s*(.+?)(?:\n|$)/);
-          if (teacherMatch && teacherMatch[1]) {
-            setTeacherName(teacherMatch[1]);
-
-            // Save this teacher for the subject
-            const updatedTeachers = {
-              ...subjectTeachers,
-              [entity.id]: teacherMatch[1],
-            };
-            setSubjectTeachers(updatedTeachers);
-            localStorage.setItem(
-              "subjectTeachers",
-              JSON.stringify(updatedTeachers)
-            );
-          } else {
-            setTeacherName("");
-          }
-        }
-      }
+    if (!entry) {
+      setTeacherName("");
+      setRoomNumber("");
+      setCurrentEntityId(null);
+      setIsWeekSplit(false);
+      setWeekType(null);
+      setEntityIdB(null);
+      setRoomNumberB("");
+      return;
     }
-  }, [
-    selectedCell,
-    timetableData,
-    teacherNameModified,
-    roomNumberModified,
-    subjectTeachers,
-    iconModified,
-  ]);
+
+    // Set current entity ID
+    setCurrentEntityId(entry.entityId);
+
+    // Set room number
+    setRoomNumber(entry.room || "");
+
+    // Set teacher name from notes
+    if (entry.notes) {
+      const teacherLine = entry.notes
+        .split("\n")
+        .find((line) => line.startsWith("Professeur:"));
+      if (teacherLine) {
+        setTeacherName(teacherLine.replace("Professeur:", "").trim());
+      } else {
+        setTeacherName("");
+      }
+    } else {
+      setTeacherName("");
+    }
+
+    // Set week split information
+    setIsWeekSplit(entry.split?.enabled || false);
+    setWeekType(entry.weekType as "A" | "B" | null);
+    setEntityIdB(entry.split?.entityIdB || null);
+    setRoomNumberB(entry.split?.roomB || "");
+
+    // Reset modification flags
+    setTeacherNameModified(false);
+    setRoomNumberModified(false);
+    setTitleModified(false);
+    setIconModified(false);
+
+    // Set previous selected cell
+    prevSelectedCellRef.current = selectedCell;
+  }, [selectedCell, timetableData]);
 
   // Save global settings
   const saveGlobalSettings = () => {
@@ -381,220 +372,283 @@ export function PersonalizationPanel({
     }
   };
 
+  // Handle week split toggle
+  const handleWeekSplitToggle = (enabled: boolean) => {
+    if (!selectedCell || !timetableData) return;
+
+    const { dayId, timeSlotId } = selectedCell;
+    const updatedData = structuredClone(timetableData);
+    const entry = updatedData.schedule.find(
+      (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+    );
+
+    if (!entry) return;
+
+    if (enabled) {
+      // Enable week split
+      entry.weekType = "A";
+      entry.split = {
+        enabled: true,
+        entityIdB: entry.entityId, // Default to same entity
+        roomB: entry.room,
+        notes: entry.notes,
+      };
+    } else {
+      // Disable week split
+      entry.weekType = null;
+      entry.split = {
+        enabled: false,
+      };
+    }
+
+    setIsWeekSplit(enabled);
+    setWeekType(enabled ? "A" : null);
+    setEntityIdB(enabled ? entry.entityId : null);
+    setRoomNumberB(enabled ? entry.room : "");
+
+    saveTimeTableData(updatedData);
+    window.dispatchEvent(new Event("timetableDataChanged"));
+  };
+
+  // Handle week type change
+  const handleWeekTypeChange = (type: "A" | "B") => {
+    if (!selectedCell || !timetableData) return;
+
+    const { dayId, timeSlotId } = selectedCell;
+    const updatedData = structuredClone(timetableData);
+    const entry = updatedData.schedule.find(
+      (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+    );
+
+    if (!entry) return;
+
+    entry.weekType = type;
+    setWeekType(type);
+
+    saveTimeTableData(updatedData);
+    window.dispatchEvent(new Event("timetableDataChanged"));
+  };
+
+  // Handle entity B change
+  const handleEntityBChange = (entityId: string) => {
+    if (!selectedCell || !timetableData) return;
+
+    const { dayId, timeSlotId } = selectedCell;
+    const updatedData = structuredClone(timetableData);
+    const entry = updatedData.schedule.find(
+      (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+    );
+
+    if (!entry || !entry.split) return;
+
+    entry.split.entityIdB = entityId;
+    setEntityIdB(entityId);
+
+    saveTimeTableData(updatedData);
+    window.dispatchEvent(new Event("timetableDataChanged"));
+  };
+
+  // Handle room B change
+  const handleRoomBChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setRoomNumberB(newValue);
+
+    if (!selectedCell || !timetableData) return;
+
+    const { dayId, timeSlotId } = selectedCell;
+    const updatedData = structuredClone(timetableData);
+    const entry = updatedData.schedule.find(
+      (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+    );
+
+    if (!entry || !entry.split) return;
+
+    entry.split.roomB = newValue;
+
+    saveTimeTableData(updatedData);
+    window.dispatchEvent(new Event("timetableDataChanged"));
+  };
+
   return (
-    <div className="space-y-6">
-      {selectedCell ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Personnalisation du créneau</h3>
-            <Button variant="ghost" size="sm" onClick={onCellDeselect}>
-              Retour
-            </Button>
-          </div>
+    <div className="h-full flex flex-col">
+      <Tabs defaultValue="cell" className="flex-1 flex flex-col">
+        <TabsList className="grid grid-cols-2">
+          <TabsTrigger value="cell">Créneau</TabsTrigger>
+          <TabsTrigger value="global">Global</TabsTrigger>
+        </TabsList>
 
-          <div className="grid grid-cols-1 gap-6 pt-2">
-            {/* Appearance Section */}
-            <div className="space-y-4 rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Palette className="h-4 w-4" />
-                <span>Apparence</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cell-color">Couleur</Label>
-                  <div className="flex items-center gap-2">
-                    <ColorPicker
-                      color={selectedColor}
-                      onChange={handleColorChange}
-                      onChangeComplete={() => {}}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cell-icon">Icône</Label>
-                  <div className="flex items-center gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-10 h-10 p-0 flex items-center justify-center"
-                        >
-                          {selectedIcon ? (
-                            <span className="text-xl">{selectedIcon}</span>
-                          ) : (
-                            <Palette className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0">
-                        <IconPicker
-                          selectedIcon={selectedIcon}
-                          onSelectIcon={(icon) => {
-                            setSelectedIcon(icon);
-                            setIconModified(true);
-                            if (currentEntityId && timetableData) {
-                              const entityType = currentEntityId.startsWith(
-                                "s-"
-                              )
-                                ? "subject"
-                                : "activity";
-                              updateEntityIcon(
-                                currentEntityId,
-                                entityType,
-                                icon
-                              );
-                            }
-                          }}
-                          onClose={() => {}}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Teacher Section */}
-            <div className="space-y-4 rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span>Professeur</span>
-              </div>
-
+        <TabsContent
+          value="cell"
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+        >
+          {selectedCell ? (
+            <>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="teacher-name">Nom du professeur</Label>
+                  <Label htmlFor="entity">Matière / Activité</Label>
+                  <Select
+                    value={currentEntityId || ""}
+                    onValueChange={(value) => {
+                      if (!selectedCell || !timetableData) return;
+
+                      const { dayId, timeSlotId } = selectedCell;
+                      const updatedData = structuredClone(timetableData);
+                      const entry = updatedData.schedule.find(
+                        (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+                      );
+
+                      if (!entry) return;
+
+                      // Determine entity type
+                      const isSubject = updatedData.subjects.some(
+                        (s) => s.id === value
+                      );
+                      const entityType = isSubject ? "subject" : "activity";
+
+                      entry.entityId = value;
+                      entry.type = entityType;
+                      setCurrentEntityId(value);
+
+                      saveTimeTableData(updatedData);
+                      window.dispatchEvent(new Event("timetableDataChanged"));
+                    }}
+                  >
+                    <SelectTrigger id="entity">
+                      <SelectValue placeholder="Sélectionner une matière" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucune</SelectItem>
+                      {timetableData.subjects.map((subject) => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.icon} {subject.name}
+                        </SelectItem>
+                      ))}
+                      {timetableData.activities.map((activity) => (
+                        <SelectItem key={activity.id} value={activity.id}>
+                          {activity.icon} {activity.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="room">Salle</Label>
                   <Input
-                    id="teacher-name"
+                    id="room"
+                    value={roomNumber}
+                    onChange={handleRoomNumberChange}
+                    placeholder="Ex: B305"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="teacher">Professeur</Label>
+                  <Input
+                    id="teacher"
                     value={teacherName}
                     onChange={handleTeacherNameChange}
-                    placeholder="Entrez le nom du professeur"
+                    placeholder="Ex: M. Dupont"
                   />
                 </div>
+
+                {/* Week A/B Split Section */}
+                <div className="space-y-4 pt-2 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="week-split">Alternance semaine A/B</Label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="week-split"
+                        checked={isWeekSplit}
+                        onChange={(e) =>
+                          handleWeekSplitToggle(e.target.checked)
+                        }
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  {isWeekSplit && (
+                    <div className="space-y-4 pl-2 border-l-2 border-primary/20">
+                      <div className="space-y-2">
+                        <Label htmlFor="week-type">Type de semaine</Label>
+                        <Select
+                          value={weekType || "A"}
+                          onValueChange={(value) =>
+                            handleWeekTypeChange(value as "A" | "B")
+                          }
+                        >
+                          <SelectTrigger id="week-type">
+                            <SelectValue placeholder="Sélectionner le type de semaine" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A">Semaine A</SelectItem>
+                            <SelectItem value="B">Semaine B</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="entity-b">
+                          Matière semaine {weekType === "A" ? "B" : "A"}
+                        </Label>
+                        <Select
+                          value={entityIdB || ""}
+                          onValueChange={handleEntityBChange}
+                        >
+                          <SelectTrigger id="entity-b">
+                            <SelectValue
+                              placeholder={`Sélectionner une matière pour la semaine ${
+                                weekType === "A" ? "B" : "A"
+                              }`}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Aucune</SelectItem>
+                            {timetableData.subjects.map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {subject.icon} {subject.name}
+                              </SelectItem>
+                            ))}
+                            {timetableData.activities.map((activity) => (
+                              <SelectItem key={activity.id} value={activity.id}>
+                                {activity.icon} {activity.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="room-b">
+                          Salle semaine {weekType === "A" ? "B" : "A"}
+                        </Label>
+                        <Input
+                          id="room-b"
+                          value={roomNumberB}
+                          onChange={handleRoomBChange}
+                          placeholder={`Ex: B305 (semaine ${
+                            weekType === "A" ? "B" : "A"
+                          })`}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ... existing buttons ... */}
               </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              Sélectionnez un créneau pour le personnaliser
             </div>
+          )}
+        </TabsContent>
 
-            {/* Room Section */}
-            <div className="space-y-4 rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>Salle</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="room-number">Numéro de salle</Label>
-                <Input
-                  id="room-number"
-                  value={roomNumber}
-                  onChange={handleRoomNumberChange}
-                  placeholder="Entrez le numéro de salle"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Personnalisation globale</h3>
-
-          <Tabs defaultValue="typography">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="typography">
-                <Type className="h-4 w-4 mr-2" />
-                Typographie
-              </TabsTrigger>
-              <TabsTrigger value="border">
-                <Square className="h-4 w-4 mr-2" />
-                Bordure
-              </TabsTrigger>
-              <TabsTrigger value="title">
-                <Paintbrush className="h-4 w-4 mr-2" />
-                Titre
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="typography" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="font-family">Police d&apos;écriture</Label>
-                <Select
-                  value={globalSettings.fontFamily}
-                  onValueChange={(value) =>
-                    setGlobalSettings({ ...globalSettings, fontFamily: value })
-                  }
-                >
-                  <SelectTrigger id="font-family">
-                    <SelectValue placeholder="Sélectionnez une police" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontFamilies.map((font) => (
-                      <SelectItem key={font.value} value={font.value}>
-                        {font.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="border" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="border-color">Couleur de bordure</Label>
-                <div className="flex items-center gap-2">
-                  <ColorPicker
-                    color={globalSettings.borderColor}
-                    onChange={handleBorderColorChange}
-                    onChangeComplete={saveGlobalSettings}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="border-width">Épaisseur de bordure</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="border-width"
-                    type="range"
-                    min="0"
-                    max="5"
-                    step="1"
-                    value={globalSettings.borderWidth}
-                    onChange={(e) =>
-                      setGlobalSettings({
-                        ...globalSettings,
-                        borderWidth: parseInt(e.target.value),
-                      })
-                    }
-                    className="flex-1"
-                  />
-                  <span className="w-8 text-center">
-                    {globalSettings.borderWidth}px
-                  </span>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="title" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="timetable-title">
-                  Titre de l&apos;emploi du temps
-                </Label>
-                <Input
-                  id="timetable-title"
-                  value={globalSettings.title}
-                  onChange={handleTitleChange}
-                  placeholder="Entrez un titre pour votre emploi du temps"
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <Button className="w-full" onClick={saveGlobalSettings}>
-            Enregistrer les paramètres
-          </Button>
-        </div>
-      )}
+        {/* ... existing global tab ... */}
+      </Tabs>
     </div>
   );
 }

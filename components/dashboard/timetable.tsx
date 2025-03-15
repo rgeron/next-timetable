@@ -1,20 +1,31 @@
 "use client";
 
+import { WeekSplitDialog } from "@/components/ui/week-split-dialog";
 import {
   getEntityById,
   getScheduleEntry,
+  saveTimeTableData,
   type ScheduleEntry,
   type TimeTableData,
 } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
 import { MapPin, Printer, User } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { calculateSlotHeight, useA4Preview } from "./print-timetable";
 
 // Type for the selected cell
 type SelectedCell = {
   dayId: number;
   timeSlotId: number;
+} | null;
+
+// Type for week split dialog data
+type WeekSplitDialogData = {
+  isOpen: boolean;
+  dayId: number;
+  timeSlotId: number;
+  existingEntityId: string;
+  newEntityId: string;
 } | null;
 
 export function Timetable({
@@ -26,10 +37,82 @@ export function Timetable({
   selectedCell: SelectedCell;
   currentStep: string;
 }) {
-  const { timetableData, isLoading } = useTimetable();
+  const { timetableData, isLoading, splitTimetableSlot, addToTimetableSlot } =
+    useTimetable();
   // Always use A4 preview, no toggle needed
   const { containerStyle } = useA4Preview();
   const isA4Preview = true;
+  const [weekSplitDialog, setWeekSplitDialog] =
+    useState<WeekSplitDialogData>(null);
+
+  // Listen for week split dialog events
+  useEffect(() => {
+    const handleShowWeekSplitDialog = (event: CustomEvent) => {
+      const { dayId, timeSlotId, existingEntityId, newEntityId } = event.detail;
+      setWeekSplitDialog({
+        isOpen: true,
+        dayId,
+        timeSlotId,
+        existingEntityId,
+        newEntityId,
+      });
+    };
+
+    window.addEventListener(
+      "showWeekSplitDialog",
+      handleShowWeekSplitDialog as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "showWeekSplitDialog",
+        handleShowWeekSplitDialog as EventListener
+      );
+    };
+  }, []);
+
+  const handleCloseWeekSplitDialog = () => {
+    setWeekSplitDialog(null);
+  };
+
+  const handleReplaceSlot = () => {
+    if (!weekSplitDialog || !timetableData) return;
+
+    const { dayId, timeSlotId, newEntityId } = weekSplitDialog;
+
+    // Update the entry with the new entity ID
+    const updatedData = structuredClone(timetableData);
+    const entry = updatedData.schedule.find(
+      (e) => e.dayId === dayId && e.timeSlotId === timeSlotId
+    );
+
+    if (entry) {
+      entry.entityId = newEntityId;
+      entry.weekType = null;
+      entry.split = { enabled: false };
+
+      // Save the updated data
+      saveTimeTableData(updatedData);
+
+      // Trigger a custom event to notify of timetable data change
+      window.dispatchEvent(new Event("timetableDataChanged"));
+    }
+
+    // Close the dialog
+    setWeekSplitDialog(null);
+  };
+
+  const handleSplitSlot = (weekAEntityId: string, weekBEntityId: string) => {
+    if (!weekSplitDialog) return;
+
+    const { dayId, timeSlotId } = weekSplitDialog;
+
+    // Call the split function from context
+    splitTimetableSlot(dayId, timeSlotId, weekAEntityId, weekBEntityId);
+
+    // Close the dialog
+    setWeekSplitDialog(null);
+  };
 
   if (isLoading || !timetableData) {
     return (
@@ -61,6 +144,18 @@ export function Timetable({
 
   return (
     <div className="w-full p-4 print-container">
+      {/* Week Split Dialog */}
+      {weekSplitDialog && (
+        <WeekSplitDialog
+          isOpen={weekSplitDialog.isOpen}
+          onClose={handleCloseWeekSplitDialog}
+          onReplace={handleReplaceSlot}
+          onSplit={handleSplitSlot}
+          existingEntityId={weekSplitDialog.existingEntityId}
+          newEntityId={weekSplitDialog.newEntityId}
+        />
+      )}
+
       {/* Print Controls - Only show print button, no toggle */}
       <div className="flex justify-end mb-4 items-center gap-2 no-print">
         <button
@@ -169,10 +264,10 @@ export function Timetable({
             printWindow.document.write(htmlContent);
             printWindow.document.close();
           }}
-          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium px-3 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          className="flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
         >
           <Printer className="h-4 w-4" />
-          Imprimer
+          <span>Imprimer</span>
         </button>
       </div>
 
@@ -378,6 +473,57 @@ function ScheduleCell({
 
   const entity = getEntityById(timetableData, entry.entityId);
 
+  // Handle week A/B split display
+  let weekBadge = null;
+  let entityB = null;
+
+  if (entry.weekType) {
+    weekBadge = (
+      <div
+        className="absolute top-0.5 right-0.5 text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
+        style={{
+          backgroundColor: entity?.color ? `${entity.color}40` : "#f0f0f0",
+          color: entity?.color || "#000",
+        }}
+      >
+        {entry.weekType}
+      </div>
+    );
+  }
+
+  if (entry.split?.enabled && entry.split.entityIdB) {
+    entityB = getEntityById(timetableData, entry.split.entityIdB);
+
+    if (!continuesFromPrev) {
+      weekBadge = (
+        <div className="absolute top-0.5 right-0.5 flex gap-1">
+          <div
+            className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
+            style={{
+              backgroundColor: entity?.color ? `${entity.color}40` : "#f0f0f0",
+              color: entity?.color || "#000",
+              border: `1px solid ${entity?.color || "#000"}`,
+            }}
+          >
+            A
+          </div>
+          <div
+            className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
+            style={{
+              backgroundColor: entityB?.color
+                ? `${entityB.color}40`
+                : "#f0f0f0",
+              color: entityB?.color || "#000",
+              border: `1px solid ${entityB?.color || "#000"}`,
+            }}
+          >
+            B
+          </div>
+        </div>
+      );
+    }
+  }
+
   if (!entity) {
     return (
       <div
@@ -391,6 +537,7 @@ function ScheduleCell({
         <div className="w-full h-full p-1 flex items-center justify-center text-muted-foreground text-xs">
           {entry.entityId}
         </div>
+        {weekBadge}
       </div>
     );
   }
@@ -435,6 +582,9 @@ function ScheduleCell({
         style={{ backgroundColor: entity.color || "#f0f0f0" }}
       ></div>
 
+      {/* Week badge */}
+      {weekBadge}
+
       {/* Main content with semi-transparent background */}
       <div
         className="h-full w-full p-1 pl-1.5"
@@ -445,15 +595,29 @@ function ScheduleCell({
         <div className="flex flex-col h-full">
           {/* Only show subject name and icon if this is the first cell in a sequence */}
           {!continuesFromPrev && (
-            <div className="flex items-center justify-between mb-0.5">
+            <div className="flex items-center justify-between mb-0.5 relative">
               <div className="font-medium text-xs">{entity.shortName}</div>
               <div className="text-sm">{entity.icon}</div>
+
+              {/* Show "Semaine A" label if this is a split cell */}
+              {entry.split?.enabled && (
+                <div
+                  className="absolute -top-1 left-0 text-[0.6rem] font-bold px-1 rounded"
+                  style={{
+                    color: entity?.color || "#000",
+                    border: `1px solid ${entity?.color || "#000"}`,
+                    backgroundColor: "white",
+                  }}
+                >
+                  Semaine A
+                </div>
+              )}
             </div>
           )}
 
           {/* Only show room and teacher info if this is the first cell in a sequence */}
           {!continuesFromPrev && (
-            <div className="flex flex-wrap gap-0.5">
+            <div className="flex flex-wrap gap-0.5 mt-2">
               {/* Show room info */}
               {entry.room && (
                 <div
@@ -470,6 +634,56 @@ function ScheduleCell({
 
               {/* Show teacher info */}
               {teacherInfo}
+            </div>
+          )}
+
+          {/* Show week B info if this is a split cell */}
+          {!continuesFromPrev && entry.split?.enabled && entityB && (
+            <div className="mt-auto pt-1 mt-1 week-split-divider relative">
+              {/* Horizontal divider with label */}
+              <div
+                className="absolute inset-x-0 flex items-center"
+                style={{ top: "0px" }}
+              >
+                <div
+                  className="w-full border-t border-dashed"
+                  style={{
+                    borderColor: `${entity.color}70`,
+                    borderWidth: "1.5px",
+                  }}
+                ></div>
+                <div
+                  className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 text-[0.6rem] font-bold rounded"
+                  style={{
+                    backgroundColor: "white",
+                    color: entityB?.color || "#000",
+                    border: `1px solid ${entityB?.color || "#000"}`,
+                  }}
+                >
+                  Semaine B
+                </div>
+              </div>
+
+              {/* Week B content with padding to accommodate the divider */}
+              <div className="pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-xs">{entityB.shortName}</div>
+                  <div className="text-sm">{entityB.icon}</div>
+                </div>
+
+                {entry.split.roomB && (
+                  <div
+                    className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                    style={{
+                      background: `linear-gradient(135deg, ${entityB.color}15, ${entityB.color}30)`,
+                      color: entityB.color,
+                    }}
+                  >
+                    <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                    <span>{entry.split.roomB}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -76,6 +76,40 @@ const printStyles = `
     font-size: 10pt !important;
   }
   
+  /* Week A/B badges */
+  .week-badge {
+    position: absolute !important;
+    top: 2px !important;
+    right: 2px !important;
+    font-size: 7pt !important;
+    font-weight: bold !important;
+    padding: 1px 3px !important;
+    border-radius: 2px !important;
+    border: 1px solid #000 !important;
+  }
+  
+  /* Week split divider */
+  .week-split-divider {
+    position: relative !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+  }
+  
+  /* Ensure the divider line and label print correctly */
+  .week-split-divider .border-t {
+    border-top-style: dashed !important;
+    border-top-width: 1.5px !important;
+  }
+  
+  /* Make sure the "Semaine B" label is visible */
+  .week-split-divider .absolute {
+    background-color: white !important;
+    padding: 0 2px !important;
+    font-size: 7pt !important;
+    font-weight: bold !important;
+    border: 1px solid #000 !important;
+  }
+  
   /* Ensure colors print correctly */
   * {
     -webkit-print-color-adjust: exact !important;

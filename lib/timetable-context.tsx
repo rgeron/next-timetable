@@ -2,6 +2,7 @@
 
 import { type Activity, type Subject } from "@/lib/common-types";
 import {
+  getScheduleEntry,
   getTimeTableData,
   saveTimeTableData,
   updateScheduleEntry,
@@ -14,6 +15,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { toast } from "sonner";
 
 type TimetableContextType = {
   timetableData: TimeTableData | null;
@@ -43,6 +45,12 @@ type TimetableContextType = {
   setActiveTag: (tag: "récréation" | "pause" | null) => void;
   isTagModeActive: boolean;
   setIsTagModeActive: (active: boolean) => void;
+  splitTimetableSlot: (
+    dayId: number,
+    timeSlotId: number,
+    weekAEntityId: string,
+    weekBEntityId: string
+  ) => void;
 };
 
 const TimetableContext = createContext<TimetableContextType | undefined>(
@@ -62,6 +70,11 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     null
   );
   const [isTagModeActive, setIsTagModeActive] = useState(false);
+  const [showWeekSplitDialog, setShowWeekSplitDialog] = useState(false);
+  const [pendingSlotAction, setPendingSlotAction] = useState<{
+    dayId: number;
+    timeSlotId: number;
+  } | null>(null);
 
   useEffect(() => {
     // Load timetable data from localStorage
@@ -129,6 +142,30 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Check if the slot is already occupied
+    const existingEntry = getScheduleEntry(timetableData, dayId, timeSlotId);
+    if (
+      existingEntry &&
+      existingEntry.entityId &&
+      existingEntry.entityId !== selectedEntityId
+    ) {
+      // Store the pending action for later use
+      setPendingSlotAction({ dayId, timeSlotId });
+
+      // Trigger the week split dialog via a custom event
+      window.dispatchEvent(
+        new CustomEvent("showWeekSplitDialog", {
+          detail: {
+            dayId,
+            timeSlotId,
+            existingEntityId: existingEntry.entityId,
+            newEntityId: selectedEntityId,
+          },
+        })
+      );
+      return;
+    }
+
     console.log("Adding to timetable slot:", {
       dayId,
       timeSlotId,
@@ -143,6 +180,48 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     });
 
     setTimetableData(updatedData);
+
+    // Trigger a custom event to notify of timetable data change
+    window.dispatchEvent(new Event("timetableDataChanged"));
+  };
+
+  const splitTimetableSlot = (
+    dayId: number,
+    timeSlotId: number,
+    weekAEntityId: string,
+    weekBEntityId: string
+  ) => {
+    if (!timetableData) {
+      console.log("Cannot split timetable slot: no data");
+      return;
+    }
+
+    console.log("Splitting timetable slot:", {
+      dayId,
+      timeSlotId,
+      weekAEntityId,
+      weekBEntityId,
+    });
+
+    // Get the existing entry to preserve other properties
+    const existingEntry = getScheduleEntry(timetableData, dayId, timeSlotId);
+    if (!existingEntry) return;
+
+    // Update the entry with week A/B split
+    const updatedData = updateScheduleEntry(timetableData, dayId, timeSlotId, {
+      type: entityType,
+      entityId: weekAEntityId,
+      weekType: "A",
+      split: {
+        enabled: true,
+        entityIdB: weekBEntityId,
+        roomB: existingEntry.room,
+        notes: existingEntry.notes,
+      },
+    });
+
+    setTimetableData(updatedData);
+    toast.success("Créneau divisé en semaine A/B");
 
     // Trigger a custom event to notify of timetable data change
     window.dispatchEvent(new Event("timetableDataChanged"));
@@ -322,6 +401,7 @@ export function TimetableProvider({ children }: { children: ReactNode }) {
     setActiveTag,
     isTagModeActive,
     setIsTagModeActive,
+    splitTimetableSlot,
   };
 
   return (
