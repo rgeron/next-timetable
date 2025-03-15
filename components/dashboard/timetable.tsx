@@ -494,34 +494,8 @@ function ScheduleCell({
   if (entry.split?.enabled && entry.split.entityIdB) {
     entityB = getEntityById(timetableData, entry.split.entityIdB);
 
-    if (!continuesFromPrev) {
-      weekBadge = (
-        <div className="absolute top-0.5 right-0.5 flex gap-1">
-          <div
-            className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
-            style={{
-              backgroundColor: entity?.color ? `${entity.color}40` : "#f0f0f0",
-              color: entity?.color || "#000",
-              border: `1px solid ${entity?.color || "#000"}`,
-            }}
-          >
-            A
-          </div>
-          <div
-            className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
-            style={{
-              backgroundColor: entityB?.color
-                ? `${entityB.color}40`
-                : "#f0f0f0",
-              color: entityB?.color || "#000",
-              border: `1px solid ${entityB?.color || "#000"}`,
-            }}
-          >
-            B
-          </div>
-        </div>
-      );
-    }
+    // We'll set weekBadge to null because we'll show the A/B labels directly in the side-by-side layout
+    weekBadge = null;
   }
 
   if (!entity) {
@@ -593,101 +567,124 @@ function ScheduleCell({
           backgroundColor: entity.color ? `${entity.color}25` : "#f0f0f0",
         }}
       >
-        <div className="flex flex-col h-full">
-          {/* Only show subject name and icon if this is the first cell in a sequence */}
-          {!continuesFromPrev && (
-            <div className="flex items-center justify-between mb-0.5 relative">
-              <div className="font-medium text-xs">{entity.shortName}</div>
-              <div className="text-sm">{entity.icon}</div>
-
-              {/* Show "Semaine A" label if this is a split cell */}
-              {entry.split?.enabled && (
-                <div
-                  className="absolute -top-1 left-0 text-[0.6rem] font-bold px-1 rounded"
-                  style={{
-                    color: entity?.color || "#000",
-                    border: `1px solid ${entity?.color || "#000"}`,
-                    backgroundColor: "white",
-                  }}
-                >
-                  Semaine A
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Only show room and teacher info if this is the first cell in a sequence */}
-          {!continuesFromPrev && (
-            <div className="flex flex-wrap gap-0.5 mt-2">
-              {/* Show room info */}
-              {entry.room && (
-                <div
-                  className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
-                  style={{
-                    background: `linear-gradient(135deg, ${entity.color}15, ${entity.color}30)`,
-                    color: entity.color,
-                  }}
-                >
-                  <MapPin className="h-2 w-2 mr-1 opacity-70" />
-                  <span>{entry.room}</span>
-                </div>
-              )}
-
-              {/* Show teacher info */}
-              {teacherInfo}
-            </div>
-          )}
-
-          {/* Show week B info if this is a split cell */}
-          {!continuesFromPrev && entry.split?.enabled && entityB && (
-            <div className="mt-auto pt-1 mt-1 week-split-divider relative">
-              {/* Horizontal divider with label */}
+        {/* If this is a split cell, use a side-by-side layout */}
+        {!continuesFromPrev && entry.split?.enabled && entityB ? (
+          <div className="flex h-full -mx-1.5 -my-1">
+            {/* Week A content - left side */}
+            <div
+              className="flex-1 p-1 pl-2 relative"
+              style={{
+                backgroundColor: entity.color ? `${entity.color}25` : "#f0f0f0",
+              }}
+            >
               <div
-                className="absolute inset-x-0 flex items-center"
-                style={{ top: "0px" }}
+                className="absolute -top-1 left-1 text-[0.6rem] font-bold px-1 rounded"
+                style={{
+                  color: entity?.color || "#000",
+                  border: `1px solid ${entity?.color || "#000"}`,
+                  backgroundColor: "white",
+                }}
               >
-                <div
-                  className="w-full border-t border-dashed"
-                  style={{
-                    borderColor: `${entity.color}70`,
-                    borderWidth: "1.5px",
-                  }}
-                ></div>
-                <div
-                  className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 text-[0.6rem] font-bold rounded"
-                  style={{
-                    backgroundColor: "white",
-                    color: entityB?.color || "#000",
-                    border: `1px solid ${entityB?.color || "#000"}`,
-                  }}
-                >
-                  Semaine B
-                </div>
+                A
               </div>
 
-              {/* Week B content with padding to accommodate the divider */}
-              <div className="pt-2">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-xs">{entityB.shortName}</div>
-                  <div className="text-sm">{entityB.icon}</div>
-                </div>
+              <div className="flex items-center justify-between mb-0.5 mt-2">
+                <div className="font-medium text-xs">{entity.shortName}</div>
+                <div className="text-sm">{entity.icon}</div>
+              </div>
 
-                {entry.split.roomB && (
+              <div className="flex flex-wrap gap-0.5 mt-1">
+                {entry.room && (
                   <div
                     className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
                     style={{
-                      background: `linear-gradient(135deg, ${entityB.color}15, ${entityB.color}30)`,
-                      color: entityB.color,
+                      background: `linear-gradient(135deg, ${entity.color}15, ${entity.color}30)`,
+                      color: entity.color,
                     }}
                   >
                     <MapPin className="h-2 w-2 mr-1 opacity-70" />
-                    <span>{entry.split.roomB}</span>
+                    <span>{entry.room}</span>
                   </div>
                 )}
+                {teacherInfo}
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Vertical divider */}
+            <div className="w-[2px] bg-black h-full"></div>
+
+            {/* Week B content - right side */}
+            <div
+              className="flex-1 p-1 pr-2 relative"
+              style={{
+                backgroundColor: entityB.color
+                  ? `${entityB.color}25`
+                  : "#f0f0f0",
+              }}
+            >
+              <div
+                className="absolute -top-1 right-1 text-[0.6rem] font-bold px-1 rounded"
+                style={{
+                  color: entityB?.color || "#000",
+                  border: `1px solid ${entityB?.color || "#000"}`,
+                  backgroundColor: "white",
+                }}
+              >
+                B
+              </div>
+
+              <div className="flex items-center justify-between mb-0.5 mt-2">
+                <div className="font-medium text-xs">{entityB.shortName}</div>
+                <div className="text-sm">{entityB.icon}</div>
+              </div>
+
+              {entry.split.roomB && (
+                <div
+                  className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                  style={{
+                    background: `linear-gradient(135deg, ${entityB.color}15, ${entityB.color}30)`,
+                    color: entityB.color,
+                  }}
+                >
+                  <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                  <span>{entry.split.roomB}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col h-full">
+            {/* Only show subject name and icon if this is the first cell in a sequence */}
+            {!continuesFromPrev && (
+              <div className="flex items-center justify-between mb-0.5 relative">
+                <div className="font-medium text-xs">{entity.shortName}</div>
+                <div className="text-sm">{entity.icon}</div>
+              </div>
+            )}
+
+            {/* Only show room and teacher info if this is the first cell in a sequence */}
+            {!continuesFromPrev && (
+              <div className="flex flex-wrap gap-0.5 mt-2">
+                {/* Show room info */}
+                {entry.room && (
+                  <div
+                    className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                    style={{
+                      background: `linear-gradient(135deg, ${entity.color}15, ${entity.color}30)`,
+                      color: entity.color,
+                    }}
+                  >
+                    <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                    <span>{entry.room}</span>
+                  </div>
+                )}
+
+                {/* Show teacher info */}
+                {teacherInfo}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
