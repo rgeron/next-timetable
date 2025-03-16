@@ -413,7 +413,6 @@ function ScheduleCell({
   isPersonalizeStep,
   continuesFromPrev,
   continuesToNext,
-  isA4Preview = true,
 }: {
   entry?: ScheduleEntry | null;
   timetableData: TimeTableData;
@@ -667,7 +666,7 @@ function ScheduleCell({
                   </div>
                   {entry.room && (
                     <div
-                      className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                      className="text-[0.60rem] font-medium inline-flex items-center rounded-full px-1 py-0.2"
                       style={{
                         backgroundColor: entity.color || "#000",
                         color: "#fff",
@@ -680,15 +679,17 @@ function ScheduleCell({
                 </div>
 
                 {entry.notes && entry.notes.includes("Professeur:") && (
-                  <div
-                    className="text-[0.65rem] font-medium mt-0.5"
-                    style={{ color: entity.color }}
-                  >
-                    {entry.notes
-                      .split("\n")
-                      .find((line) => line.startsWith("Professeur:"))
-                      ?.replace("Professeur:", "")
-                      .trim()}
+                  <div className="text-[0.60rem] font-medium mt-0.2 flex flex-wrap gap-1">
+                    <span
+                      className="inline-flex px-1.5 py-0.5 rounded-full text-white leading-none items-center"
+                      style={{ backgroundColor: entity.color }}
+                    >
+                      {entry.notes
+                        .split("\n")
+                        .find((line) => line.startsWith("Professeur:"))
+                        ?.replace("Professeur:", "")
+                        .trim()}
+                    </span>
                   </div>
                 )}
               </div>
