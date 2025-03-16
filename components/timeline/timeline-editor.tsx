@@ -8,7 +8,7 @@ import {
   getTimeTableData,
   saveTimeTableData,
 } from "@/lib/timetable";
-import { Plus } from "lucide-react";
+import { Clock, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { TimelineSlot } from "./timeline-slot";
@@ -267,105 +267,137 @@ export function TimelineEditor({ compact = false }: TimelineEditorProps) {
           compact ? "h-[200px]" : "h-[300px]"
         }`}
       >
-        <div className="animate-pulse">Chargement...</div>
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin text-primary">
+            <Clock className="h-6 w-6" />
+          </div>
+          <div className="text-sm text-muted-foreground">Chargement...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`w-full ${compact ? "space-y-2" : "space-y-4"}`}>
+    <div className={`w-full ${compact ? "space-y-3" : "space-y-5"}`}>
       {/* Title section (only shown in standalone mode) */}
       {!compact && (
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">
-            Ajustement des créneaux horaires
-          </h3>
+        <div className="flex items-center justify-between border-b pb-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-medium">
+              Ajustement des créneaux horaires
+            </h3>
+          </div>
         </div>
       )}
 
       {/* Description (only shown in standalone mode) */}
       {!compact && (
-        <p className="text-sm text-muted-foreground">
-          Chaque point sur la ligne représente le début ou la fin d&apos;un
-          créneau. Ajustez les horaires en modifiant la valeur à côté de chaque
-          point. Les modifications sont enregistrées automatiquement.
-        </p>
+        <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground border border-muted">
+          <p>
+            Chaque point sur la ligne représente le début ou la fin d&apos;un
+            créneau. Ajustez les horaires en modifiant la valeur à côté de
+            chaque point. Les modifications sont enregistrées automatiquement.
+          </p>
+        </div>
       )}
 
       {/* Timeline content */}
       <div
-        className={`relative ${compact ? "space-y-2 mt-2 pb-2" : "space-y-3"}`}
+        className={`relative ${
+          compact ? "space-y-2 mt-3 pb-2" : "space-y-0 mt-4 pb-4"
+        }`}
       >
-        {/* Timeline visual */}
-        <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-muted" />
-
-        {/* First show a note about time format */}
-        {compact && (
-          <div className="pl-12 text-xs text-muted-foreground mb-2">
-            Format: 8h ou 8h30
-          </div>
-        )}
+        {/* Timeline visual - improved with gradient */}
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/30 via-primary to-primary/30 rounded-full" />
 
         {/* Time slots */}
-        {timeSlots.map((slot, index) => (
-          <TimelineSlot
-            key={slot.id}
-            slot={slot}
-            onChange={handleTimeSlotChange}
-            onDelete={deleteTimeSlot}
-            isFirst={index === 0}
-            compact={compact}
-          />
-        ))}
+        <div className="space-y-0">
+          {timeSlots.map((slot, index) => (
+            <TimelineSlot
+              key={slot.id}
+              slot={slot}
+              onChange={handleTimeSlotChange}
+              onDelete={deleteTimeSlot}
+              isFirst={index === 0}
+              compact={compact}
+            />
+          ))}
+        </div>
 
         {/* Last point (end of last slot) */}
         <div
-          className={`relative flex items-center ${compact ? "mb-2 py-1" : ""}`}
+          className={`relative flex items-center group ${
+            compact ? "mb-2 py-1" : "mb-0 py-2 mt-3"
+          }`}
           title="Fin de journée"
         >
           {/* Timeline dot */}
-          <div
-            className={`absolute left-6 ${
-              compact ? "w-2.5 h-2.5" : "w-3 h-3"
-            } rounded-full bg-primary transform -translate-x-1.5`}
-            title="Fin de journée"
-          />
+          <div className="absolute left-6 transform -translate-x-1.5 z-10">
+            <div
+              className={`${
+                compact ? "w-3 h-3" : "w-4 h-4"
+              } rounded-full bg-primary shadow-md relative`}
+              title="Fin de journée"
+            >
+              {/* Inner dot */}
+              <div className={`absolute inset-1 rounded-full bg-white`}></div>
+            </div>
+          </div>
 
           {/* End time input */}
           <div className={`ml-12 flex-1 flex items-center`}>
-            <Input
-              id={`end-${timeSlots.length}`}
-              value={
-                timeSlots.length > 0 ? timeSlots[timeSlots.length - 1].end : ""
-              }
-              onChange={(e) => {
-                if (timeSlots.length > 0) {
-                  handleTimeSlotChange(timeSlots.length, "end", e.target.value);
+            <div className="relative">
+              <Input
+                id={`end-${timeSlots.length}`}
+                value={
+                  timeSlots.length > 0
+                    ? timeSlots[timeSlots.length - 1].end
+                    : ""
                 }
-              }}
-              className={`${compact ? "h-6 text-xs px-2 py-0" : "h-8"} w-24`}
-              placeholder="20h00"
-              title="Heure de fin de journée"
-            />
+                onChange={(e) => {
+                  if (timeSlots.length > 0) {
+                    handleTimeSlotChange(
+                      timeSlots.length,
+                      "end",
+                      e.target.value
+                    );
+                  }
+                }}
+                className={`${
+                  compact ? "h-7 text-xs px-3" : "h-9 text-sm"
+                } w-28 pr-2 rounded-md border-muted-foreground/20 focus:border-primary focus:ring-1 focus:ring-primary transition-all`}
+                placeholder="20h00"
+                title="Heure de fin de journée"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                fin
+              </div>
+            </div>
 
             {/* Add new slot button */}
             <Button
-              variant="ghost"
-              size="icon"
-              className={`ml-2 ${
-                compact ? "h-5 w-5" : "h-7 w-7"
-              } text-muted-foreground hover:text-primary`}
+              variant="outline"
+              size="sm"
+              className={`ml-3 ${
+                compact ? "h-7 px-2" : "h-9"
+              } text-primary border-primary/30 hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors group-hover:opacity-100`}
               onClick={addTimeSlot}
               title="Ajouter un créneau"
             >
-              <Plus className={compact ? "h-3 w-3" : "h-4 w-4"} />
+              <Plus className={compact ? "h-3.5 w-3.5 mr-1" : "h-4 w-4 mr-1"} />
+              <span className={compact ? "text-xs" : "text-sm"}>
+                Ajouter un créneau
+              </span>
             </Button>
           </div>
 
           {/* Description (only in non-compact mode) */}
           {!compact && (
-            <div className="text-xs text-muted-foreground ml-3 flex items-center">
-              <span className="text-orange-500">Fin de journée</span>
+            <div className="text-xs ml-3 min-w-24">
+              <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-medium">
+                Fin de journée
+              </span>
             </div>
           )}
         </div>
