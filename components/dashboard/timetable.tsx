@@ -38,8 +38,7 @@ export function Timetable({
   selectedCell: SelectedCell;
   currentStep: string;
 }) {
-  const { timetableData, isLoading, splitTimetableSlot, addToTimetableSlot } =
-    useTimetable();
+  const { timetableData, isLoading, splitTimetableSlot } = useTimetable();
   // Always use A4 preview, no toggle needed
   const { containerStyle } = useA4Preview();
   const isA4Preview = true;
