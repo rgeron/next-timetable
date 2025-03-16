@@ -9,7 +9,7 @@ import {
   type TimeTableData,
 } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
-import { MapPin, Printer, User } from "lucide-react";
+import { MapPin, Printer } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { calculateSlotHeight, useA4Preview } from "./print-timetable";
 
@@ -516,27 +516,6 @@ function ScheduleCell({
     );
   }
 
-  // Extract teacher name from notes if it exists
-  const teacherInfo =
-    entry.notes && entry.notes.includes("Professeur:") ? (
-      <div
-        className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
-        style={{
-          background: `linear-gradient(135deg, ${entity.color}30, ${entity.color}15)`,
-          color: entity.color,
-        }}
-      >
-        <User className="h-2 w-2 mr-1 opacity-70" />
-        <span>
-          {entry.notes
-            .split("\n")
-            .find((line) => line.startsWith("Professeur:"))
-            ?.replace("Professeur:", "")
-            .trim()}
-        </span>
-      </div>
-    ) : null;
-
   // Determine border classes based on continuity
   const borderClasses = `border-l ${!continuesToNext ? "border-b" : ""}`;
 
@@ -582,10 +561,8 @@ function ScheduleCell({
                 <div
                   className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
                   style={{
-                    backgroundColor: entity?.color
-                      ? `${entity.color}40`
-                      : "#f0f0f0",
-                    color: entity?.color || "#000",
+                    backgroundColor: entity?.color || "#000",
+                    color: "#fff",
                     border: `1px solid ${entity?.color || "#000"}`,
                   }}
                 >
@@ -593,25 +570,41 @@ function ScheduleCell({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mb-0.5">
-                <div className="font-medium text-xs">{entity.shortName}</div>
-                <div className="text-sm">{entity.icon}</div>
-              </div>
+              {/* Week A content layout */}
+              <div className="flex flex-col h-full">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="text-sm mr-1">{entity.icon}</div>
+                    <div className="font-medium text-xs">
+                      {entity.shortName}
+                    </div>
+                  </div>
+                  {entry.room && (
+                    <div
+                      className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                      style={{
+                        backgroundColor: entity.color || "#000",
+                        color: "#fff",
+                      }}
+                    >
+                      <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                      <span>{entry.room}</span>
+                    </div>
+                  )}
+                </div>
 
-              <div className="flex flex-wrap gap-0.5 mt-1">
-                {entry.room && (
+                {entry.notes && entry.notes.includes("Professeur:") && (
                   <div
-                    className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
-                    style={{
-                      background: `linear-gradient(135deg, ${entity.color}15, ${entity.color}30)`,
-                      color: entity.color,
-                    }}
+                    className="text-[0.65rem] font-medium mt-0.5"
+                    style={{ color: entity.color }}
                   >
-                    <MapPin className="h-2 w-2 mr-1 opacity-70" />
-                    <span>{entry.room}</span>
+                    {entry.notes
+                      .split("\n")
+                      .find((line) => line.startsWith("Professeur:"))
+                      ?.replace("Professeur:", "")
+                      .trim()}
                   </div>
                 )}
-                {teacherInfo}
               </div>
             </div>
 
@@ -639,10 +632,8 @@ function ScheduleCell({
                 <div
                   className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
                   style={{
-                    backgroundColor: entityB?.color
-                      ? `${entityB.color}40`
-                      : "#f0f0f0",
-                    color: entityB?.color || "#000",
+                    backgroundColor: entityB?.color || "#000",
+                    color: "#fff",
                     border: `1px solid ${entityB?.color || "#000"}`,
                   }}
                 >
@@ -650,56 +641,67 @@ function ScheduleCell({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mb-0.5">
-                <div className="font-medium text-xs">{entityB.shortName}</div>
-                <div className="text-sm">{entityB.icon}</div>
-              </div>
-
-              {entry.split.roomB && (
-                <div
-                  className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
-                  style={{
-                    background: `linear-gradient(135deg, ${entityB.color}15, ${entityB.color}30)`,
-                    color: entityB.color,
-                  }}
-                >
-                  <MapPin className="h-2 w-2 mr-1 opacity-70" />
-                  <span>{entry.split.roomB}</span>
+              {/* Week B content layout */}
+              <div className="flex flex-col h-full">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="text-sm mr-1">{entityB.icon}</div>
+                    <div className="font-medium text-xs">
+                      {entityB.shortName}
+                    </div>
+                  </div>
+                  {entry.split.roomB && (
+                    <div
+                      className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                      style={{
+                        backgroundColor: entityB.color || "#000",
+                        color: "#fff",
+                      }}
+                    >
+                      <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                      <span>{entry.split.roomB}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         ) : (
           <div className="flex flex-col h-full">
-            {/* Only show subject name and icon if this is the first cell in a sequence */}
-            {!continuesFromPrev && (
-              <div className="flex items-center justify-between mb-0.5 relative">
-                <div className="font-medium text-xs">{entity.shortName}</div>
-                <div className="text-sm">{entity.icon}</div>
-              </div>
-            )}
-
-            {/* Only show room and teacher info if this is the first cell in a sequence */}
-            {!continuesFromPrev && (
-              <div className="flex flex-wrap gap-0.5 mt-2">
-                {/* Show room info */}
+            {/* Regular cell layout */}
+            <div className="flex flex-col h-full">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <div className="text-sm mr-1">{entity.icon}</div>
+                  <div className="font-medium text-xs">{entity.shortName}</div>
+                </div>
                 {entry.room && (
                   <div
-                    className="text-[0.65rem] mt-0.5 font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                    className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
                     style={{
-                      background: `linear-gradient(135deg, ${entity.color}15, ${entity.color}30)`,
-                      color: entity.color,
+                      backgroundColor: entity.color || "#000",
+                      color: "#fff",
                     }}
                   >
                     <MapPin className="h-2 w-2 mr-1 opacity-70" />
                     <span>{entry.room}</span>
                   </div>
                 )}
-
-                {/* Show teacher info */}
-                {teacherInfo}
               </div>
-            )}
+
+              {entry.notes && entry.notes.includes("Professeur:") && (
+                <div
+                  className="text-[0.65rem] font-medium mt-0.5"
+                  style={{ color: entity.color }}
+                >
+                  {entry.notes
+                    .split("\n")
+                    .find((line) => line.startsWith("Professeur:"))
+                    ?.replace("Professeur:", "")
+                    .trim()}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
