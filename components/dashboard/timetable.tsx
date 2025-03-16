@@ -12,6 +12,7 @@ import { useTimetable } from "@/lib/timetable-context";
 import { MapPin, Printer } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { calculateSlotHeight, useA4Preview } from "./print-timetable";
+import { ThemedBorder } from "./themed-border";
 
 // Type for the selected cell
 type SelectedCell = {
@@ -143,8 +144,8 @@ export function Timetable({
   };
 
   return (
-    <div className="w-full p-4 print-container">
-      {/* Week Split Dialog */}
+    <div className="relative w-full print-container">
+      {/* Week split dialog */}
       {weekSplitDialog && (
         <WeekSplitDialog
           isOpen={weekSplitDialog.isOpen}
@@ -155,6 +156,132 @@ export function Timetable({
           newEntityId={weekSplitDialog.newEntityId}
         />
       )}
+
+      <ThemedBorder
+        theme={settings?.borderTheme || "none"}
+        title={settings?.title || "Emploi du Temps"}
+      >
+        <div
+          className="border overflow-hidden mx-auto timetable-container shadow-lg bg-white"
+          style={{
+            fontFamily: settings?.fontFamily || "inherit",
+            width: "100%",
+            height: "100%",
+            ...containerStyle,
+          }}
+        >
+          {/* Only show title if no border theme or theme is "none" */}
+          {(!settings?.borderTheme || settings?.borderTheme === "none") && (
+            <div className="p-3 text-center">
+              <h2 className="text-lg font-bold mb-1">
+                {settings?.title ? settings.title : "Emploi du Temps"}
+              </h2>
+              <div className="text-xs text-muted-foreground">
+                {timetableData.metadata.school && (
+                  <span>{timetableData.metadata.school} • </span>
+                )}
+                {timetableData.metadata.year && (
+                  <span>{timetableData.metadata.year} • </span>
+                )}
+                {timetableData.metadata.class && (
+                  <span>{timetableData.metadata.class}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="grid timetable-grid" style={{ gridTemplateColumns }}>
+            {/* Header cell for time column */}
+            <div className="p-1 bg-muted/20 border-b border-r font-medium text-center timetable-header text-xs">
+              Horaire
+            </div>
+
+            {/* Day headers */}
+            {timetableData.days.map((day) => (
+              <div
+                key={day.id}
+                className="p-1 bg-muted/20 border-b font-medium text-center timetable-header text-xs"
+              >
+                {day.name.charAt(0).toUpperCase() + day.name.slice(1)}
+              </div>
+            ))}
+
+            {/* Time slots and schedule cells */}
+            {timetableData.timeSlots.map((timeSlot, timeSlotIndex) => {
+              const height = calculateSlotHeight(
+                timeSlot.start,
+                timeSlot.end,
+                isA4Preview
+              );
+
+              return (
+                <React.Fragment key={timeSlot.id}>
+                  {/* Time column */}
+                  <div
+                    className="p-1 bg-muted/10 border-b border-r flex flex-col justify-center items-center timetable-time text-xs"
+                    style={{ height: `${height}px` }}
+                  >
+                    <div className="text-xs font-medium">{timeSlot.start}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {timeSlot.end}
+                    </div>
+                  </div>
+
+                  {/* Schedule cells for each day */}
+                  {timetableData.days.map((day) => {
+                    const entry = getScheduleEntry(
+                      timetableData,
+                      day.id,
+                      timeSlot.id
+                    );
+
+                    // Check if this entry continues from previous time slot
+                    const prevTimeSlot =
+                      timeSlotIndex > 0
+                        ? timetableData.timeSlots[timeSlotIndex - 1]
+                        : null;
+                    const prevEntry = prevTimeSlot
+                      ? getScheduleEntry(timetableData, day.id, prevTimeSlot.id)
+                      : null;
+
+                    // Check if this entry continues to next time slot
+                    const nextTimeSlot =
+                      timeSlotIndex < timetableData.timeSlots.length - 1
+                        ? timetableData.timeSlots[timeSlotIndex + 1]
+                        : null;
+                    const nextEntry = nextTimeSlot
+                      ? getScheduleEntry(timetableData, day.id, nextTimeSlot.id)
+                      : null;
+
+                    const continuesFromPrev = hasSameEntity(entry, prevEntry);
+                    const continuesToNext = hasSameEntity(entry, nextEntry);
+
+                    return (
+                      <ScheduleCell
+                        key={`${day.id}-${timeSlot.id}`}
+                        entry={entry}
+                        timetableData={timetableData}
+                        height={height}
+                        dayId={day.id}
+                        timeSlotId={timeSlot.id}
+                        onCellSelect={onCellSelect}
+                        isSelected={
+                          selectedCell?.dayId === day.id &&
+                          selectedCell?.timeSlotId === timeSlot.id
+                        }
+                        isPersonalizeStep={currentStep === "personnaliser"}
+                        continuesFromPrev={continuesFromPrev}
+                        continuesToNext={continuesToNext}
+                        isA4Preview={isA4Preview}
+                      />
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      </ThemedBorder>
 
       {/* Print Controls - Only show print button, no toggle */}
       <div className="flex justify-end mb-4 items-center gap-2 no-print">
@@ -269,128 +396,6 @@ export function Timetable({
           <Printer className="h-4 w-4" />
           <span>Imprimer</span>
         </button>
-      </div>
-
-      {/* A4 Preview Container - Always enabled */}
-      <div
-        className="border overflow-hidden mx-auto timetable-container shadow-lg"
-        style={{
-          fontFamily: settings?.fontFamily || "inherit",
-          borderColor: settings?.borderColor || "inherit",
-          borderWidth: settings?.borderWidth
-            ? `${settings.borderWidth}px`
-            : "1px",
-          ...containerStyle,
-        }}
-      >
-        {/* Title inside A4 container */}
-        <div className="p-3 text-center">
-          <h2 className="text-lg font-bold mb-1">
-            {settings?.title ? settings.title : "Emploi du Temps"}
-          </h2>
-          <div className="text-xs text-muted-foreground">
-            {timetableData.metadata.school && (
-              <span>{timetableData.metadata.school} • </span>
-            )}
-            {timetableData.metadata.year && (
-              <span>{timetableData.metadata.year} • </span>
-            )}
-            {timetableData.metadata.class && (
-              <span>{timetableData.metadata.class}</span>
-            )}
-          </div>
-        </div>
-
-        <div className="grid timetable-grid" style={{ gridTemplateColumns }}>
-          {/* Header cell for time column */}
-          <div className="p-1 bg-muted/20 border-b border-r font-medium text-center timetable-header text-xs">
-            Horaire
-          </div>
-
-          {/* Day headers */}
-          {timetableData.days.map((day) => (
-            <div
-              key={day.id}
-              className="p-1 bg-muted/20 border-b font-medium text-center timetable-header text-xs"
-            >
-              {day.name.charAt(0).toUpperCase() + day.name.slice(1)}
-            </div>
-          ))}
-
-          {/* Time slots and schedule cells */}
-          {timetableData.timeSlots.map((timeSlot, timeSlotIndex) => {
-            const height = calculateSlotHeight(
-              timeSlot.start,
-              timeSlot.end,
-              isA4Preview
-            );
-
-            return (
-              <React.Fragment key={timeSlot.id}>
-                {/* Time column */}
-                <div
-                  className="p-1 bg-muted/10 border-b border-r flex flex-col justify-center items-center timetable-time text-xs"
-                  style={{ height: `${height}px` }}
-                >
-                  <div className="text-xs font-medium">{timeSlot.start}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {timeSlot.end}
-                  </div>
-                </div>
-
-                {/* Schedule cells for each day */}
-                {timetableData.days.map((day) => {
-                  const entry = getScheduleEntry(
-                    timetableData,
-                    day.id,
-                    timeSlot.id
-                  );
-
-                  // Check if this entry continues from previous time slot
-                  const prevTimeSlot =
-                    timeSlotIndex > 0
-                      ? timetableData.timeSlots[timeSlotIndex - 1]
-                      : null;
-                  const prevEntry = prevTimeSlot
-                    ? getScheduleEntry(timetableData, day.id, prevTimeSlot.id)
-                    : null;
-
-                  // Check if this entry continues to next time slot
-                  const nextTimeSlot =
-                    timeSlotIndex < timetableData.timeSlots.length - 1
-                      ? timetableData.timeSlots[timeSlotIndex + 1]
-                      : null;
-                  const nextEntry = nextTimeSlot
-                    ? getScheduleEntry(timetableData, day.id, nextTimeSlot.id)
-                    : null;
-
-                  const continuesFromPrev = hasSameEntity(entry, prevEntry);
-                  const continuesToNext = hasSameEntity(entry, nextEntry);
-
-                  return (
-                    <ScheduleCell
-                      key={`${day.id}-${timeSlot.id}`}
-                      entry={entry}
-                      timetableData={timetableData}
-                      height={height}
-                      dayId={day.id}
-                      timeSlotId={timeSlot.id}
-                      onCellSelect={onCellSelect}
-                      isSelected={
-                        selectedCell?.dayId === day.id &&
-                        selectedCell?.timeSlotId === timeSlot.id
-                      }
-                      isPersonalizeStep={currentStep === "personnaliser"}
-                      continuesFromPrev={continuesFromPrev}
-                      continuesToNext={continuesToNext}
-                      isA4Preview={isA4Preview}
-                    />
-                  );
-                })}
-              </React.Fragment>
-            );
-          })}
-        </div>
       </div>
     </div>
   );

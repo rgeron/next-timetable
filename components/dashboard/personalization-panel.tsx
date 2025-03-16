@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { saveTimeTableData } from "@/lib/timetable";
 import { useTimetable } from "@/lib/timetable-context";
-import { Paintbrush, Palette, Square, Type } from "lucide-react";
+import { Paintbrush, Palette, Type } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // Type for the selected cell
@@ -33,16 +33,14 @@ type SelectedCell = {
 type GlobalSettings = {
   title: string;
   fontFamily: string;
-  borderColor: string;
-  borderWidth: number;
+  borderTheme: string;
 };
 
 // Default global settings
 const defaultGlobalSettings: GlobalSettings = {
   title: "",
   fontFamily: "Inter",
-  borderColor: "#e2e8f0",
-  borderWidth: 1,
+  borderTheme: "none",
 };
 
 // Available font families
@@ -52,6 +50,15 @@ const fontFamilies = [
   { value: "Poppins", label: "Poppins" },
   { value: "Montserrat", label: "Montserrat" },
   { value: "Open Sans", label: "Open Sans" },
+];
+
+// Available border themes
+const borderThemes = [
+  { value: "none", label: "Aucun" },
+  { value: "superhero", label: "Super-héros" },
+  { value: "space", label: "Espace" },
+  { value: "nature", label: "Nature" },
+  { value: "solid-color", label: "Couleur uniforme" },
 ];
 
 export function PersonalizationPanel({
@@ -201,12 +208,8 @@ export function PersonalizationPanel({
 
     // Apply settings to the DOM for immediate effect
     document.documentElement.style.setProperty(
-      "--timetable-border-color",
-      globalSettings.borderColor
-    );
-    document.documentElement.style.setProperty(
-      "--timetable-border-width",
-      `${globalSettings.borderWidth}px`
+      "--timetable-border-theme",
+      globalSettings.borderTheme
     );
 
     // Reset modification flag
@@ -343,20 +346,6 @@ export function PersonalizationPanel({
         : "activity";
       updateEntityColor(currentEntityId, entityType, color);
     }
-  };
-
-  // Handle border color change
-  const handleBorderColorChange = (color: string) => {
-    setGlobalSettings({
-      ...globalSettings,
-      borderColor: color,
-    });
-
-    // Apply border color change immediately
-    document.documentElement.style.setProperty(
-      "--timetable-border-color",
-      color
-    );
   };
 
   // Apply teacher to all instances of this subject (now private helper function)
@@ -795,13 +784,13 @@ export function PersonalizationPanel({
                   <Type className="h-4 w-4 mr-2" />
                   Typographie
                 </TabsTrigger>
-                <TabsTrigger value="border">
-                  <Square className="h-4 w-4 mr-2" />
-                  Bordure
-                </TabsTrigger>
                 <TabsTrigger value="title">
                   <Paintbrush className="h-4 w-4 mr-2" />
                   Titre
+                </TabsTrigger>
+                <TabsTrigger value="theme">
+                  <Palette className="h-4 w-4 mr-2" />
+                  Thème
                 </TabsTrigger>
               </TabsList>
 
@@ -831,43 +820,6 @@ export function PersonalizationPanel({
                 </div>
               </TabsContent>
 
-              <TabsContent value="border" className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="border-color">Couleur de bordure</Label>
-                  <div className="flex items-center gap-2">
-                    <ColorPicker
-                      color={globalSettings.borderColor}
-                      onChange={handleBorderColorChange}
-                      onChangeComplete={saveGlobalSettings}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="border-width">Épaisseur de bordure</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="border-width"
-                      type="range"
-                      min="0"
-                      max="5"
-                      step="1"
-                      value={globalSettings.borderWidth}
-                      onChange={(e) =>
-                        setGlobalSettings({
-                          ...globalSettings,
-                          borderWidth: parseInt(e.target.value),
-                        })
-                      }
-                      className="flex-1"
-                    />
-                    <span className="w-8 text-center">
-                      {globalSettings.borderWidth}px
-                    </span>
-                  </div>
-                </div>
-              </TabsContent>
-
               <TabsContent value="title" className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label htmlFor="timetable-title">
@@ -879,6 +831,41 @@ export function PersonalizationPanel({
                     onChange={handleTitleChange}
                     placeholder="Entrez un titre pour votre emploi du temps"
                   />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="theme" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="border-theme">Thème de cadre</Label>
+                  <Select
+                    value={globalSettings.borderTheme}
+                    onValueChange={(value) => {
+                      setGlobalSettings({
+                        ...globalSettings,
+                        borderTheme: value,
+                      });
+                      // Apply theme change immediately
+                      document.documentElement.style.setProperty(
+                        "--timetable-border-theme",
+                        value
+                      );
+                    }}
+                  >
+                    <SelectTrigger id="border-theme">
+                      <SelectValue placeholder="Sélectionnez un thème" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {borderThemes.map((theme) => (
+                        <SelectItem key={theme.value} value={theme.value}>
+                          {theme.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Le thème de cadre ajoute une bordure décorative autour de
+                    votre emploi du temps.
+                  </p>
                 </div>
               </TabsContent>
             </Tabs>

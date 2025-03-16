@@ -45,8 +45,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   /* Timetable styling variables */
-  --timetable-border-color: var(--border);
-  --timetable-border-width: 1px;
+  --timetable-border-theme: "none";
 }
 
 :root {

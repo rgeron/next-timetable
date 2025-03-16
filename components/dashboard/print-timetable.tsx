@@ -165,94 +165,209 @@ export function PrintControls({
     const settings = globalSettings ? JSON.parse(globalSettings) : null;
 
     // Create HTML content for the print window
-    const htmlContent = `
+    const title = settings?.title || "Emploi du Temps";
+    const borderTheme = settings?.borderTheme || "none";
+
+    // Clone the timetable container
+    const timetableClone = timetableContainer.cloneNode(true);
+
+    // Create a wrapper for the themed border
+    const borderWrapper = document.createElement("div");
+    borderWrapper.className = "themed-border-wrapper";
+
+    // Write the HTML to the print window
+    printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Emploi du Temps</title>
+          <title>${title}</title>
           <style>
-            @page {
-              size: A4 landscape;
-              margin: 10mm;
-            }
-            body {
-              margin: 0;
-              padding: 10mm;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
-              font-family: system-ui, -apple-system, sans-serif;
-            }
-            .timetable-container {
-              width: 100% !important;
-              height: auto !important;
-              border: 1px solid #ddd;
-              box-shadow: none !important;
-              transform: none !important;
-            }
-            .timetable-grid {
-              display: grid;
+            ${printStyles}
+            
+            /* Additional styles for the themed border */
+            .themed-border-wrapper {
+              position: relative;
               width: 100%;
+              height: 100vh;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
             }
-            .timetable-header {
-              background-color: #f5f5f5 !important;
-              font-weight: bold;
-              padding: 8px;
-              text-align: center;
-              border-bottom: 1px solid #ddd;
+            
+            /* Border theme styles */
+            ${getBorderThemeStyles(borderTheme)}
+            
+            /* Title styles */
+            .themed-title {
+              position: absolute;
+              z-index: 10;
+              ${getTitleStyles(borderTheme)}
             }
-            .timetable-time {
-              background-color: #f9f9f9 !important;
-              padding: 8px;
-              text-align: center;
-              border-bottom: 1px solid #ddd;
-              border-right: 1px solid #ddd;
+            
+            /* Background image styles */
+            .themed-border-bg {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              z-index: 0;
             }
-            .timetable-cell {
-              page-break-inside: avoid;
-              break-inside: avoid;
+            
+            /* Content container */
+            .themed-content {
+              position: relative;
+              z-index: 1;
+              width: 75%;
+              height: 75%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
+            
+            /* Ensure the timetable fits within the border */
+            .timetable-container {
+              max-width: 100% !important;
+              max-height: 100% !important;
+              transform: none !important;
             }
           </style>
         </head>
-        <body onload="setTimeout(function() { window.print(); }, 500)">
-          <div style="text-align: center; margin-bottom: 15px;">
-            <h1 style="margin-bottom: 5px; font-size: 24px;">${
-              settings?.title || "Emploi du Temps"
-            }</h1>
-            <div style="font-size: 14px; color: #666;">
+        <body>
+          <div class="print-container">
+            <div class="themed-border-wrapper ${
+              borderTheme !== "none" ? `border-theme-${borderTheme}` : ""
+            }">
               ${
-                timetableData.metadata.school
-                  ? timetableData.metadata.school + " • "
-                  : ""
+                borderTheme !== "none"
+                  ? `
+                <img src="/borders/${borderTheme}-border.png" class="themed-border-bg" />
+                <div class="themed-title" style="${getTitlePosition(
+                  borderTheme
+                )}">${title}</div>
+                <div class="themed-content">
+                  ${timetableClone.outerHTML}
+                </div>
+              `
+                  : timetableClone.outerHTML
               }
-              ${
-                timetableData.metadata.year
-                  ? timetableData.metadata.year + " • "
-                  : ""
-              }
-              ${timetableData.metadata.class || ""}
             </div>
           </div>
-          ${timetableContainer.outerHTML}
           <script>
-            window.addEventListener('afterprint', function() {
-              window.close();
-            });
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
           </script>
         </body>
       </html>
-    `;
+    `);
 
-    // Write to the new window
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
+
+  // Helper function to get border theme styles
+  function getBorderThemeStyles(theme: string) {
+    switch (theme) {
+      case "superhero":
+        return `
+          .border-theme-superhero {
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 1.414/1;
+          }
+        `;
+      case "space":
+        return `
+          .border-theme-space {
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 1.414/1;
+          }
+        `;
+      case "nature":
+        return `
+          .border-theme-nature {
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 1.414/1;
+          }
+        `;
+      case "solid-color":
+        return `
+          .border-theme-solid-color {
+            border-radius: 8px;
+            background-color: rgba(59, 130, 246, 0.1);
+            overflow: hidden;
+            aspect-ratio: 1.414/1;
+          }
+        `;
+      default:
+        return "";
+    }
+  }
+
+  // Helper function to get title position
+  function getTitlePosition(theme: string) {
+    switch (theme) {
+      case "superhero":
+        return "top: 5%; left: 50%; transform: translateX(-50%);";
+      case "space":
+        return "top: 5%; left: 50%; transform: translateX(-50%);";
+      case "nature":
+        return "top: 5%; left: 50%; transform: translateX(-50%);";
+      case "solid-color":
+        return "top: 5%; left: 50%; transform: translateX(-50%);";
+      default:
+        return "top: 5%; left: 50%; transform: translateX(-50%);";
+    }
+  }
+
+  // Helper function to get title styles
+  function getTitleStyles(theme: string) {
+    switch (theme) {
+      case "superhero":
+        return `
+          background-color: #dc2626;
+          color: white;
+          padding: 8px 24px;
+          border-radius: 4px;
+          font-weight: bold;
+          font-size: 24px;
+        `;
+      case "space":
+        return `
+          background-color: #4338ca;
+          color: white;
+          padding: 8px 24px;
+          border-radius: 4px;
+          font-weight: bold;
+          font-size: 24px;
+        `;
+      case "nature":
+        return `
+          background-color: #15803d;
+          color: white;
+          padding: 8px 24px;
+          border-radius: 4px;
+          font-weight: bold;
+          font-size: 24px;
+        `;
+      case "solid-color":
+        return `
+          background-color: #2563eb;
+          color: white;
+          padding: 8px 24px;
+          border-radius: 4px;
+          font-weight: bold;
+          font-size: 24px;
+        `;
+      default:
+        return "";
+    }
+  }
 
   return (
     <div className="flex justify-end mb-4 items-center gap-2 no-print">
