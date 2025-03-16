@@ -203,7 +203,11 @@ export function PrintControls({
             .themed-title {
               position: absolute;
               z-index: 10;
-              ${getTitleStyles(borderTheme)}
+              color: white;
+              font-size: 28px;
+              font-weight: bold;
+              text-align: center;
+              font-family: ${settings?.fontFamily || "Inter"}, sans-serif;
             }
             
             /* Background image styles */
@@ -313,60 +317,21 @@ export function PrintControls({
   function getTitlePosition(theme: string) {
     switch (theme) {
       case "superhero":
-        return "top: 5%; left: 50%; transform: translateX(-50%);";
+        return "top: 4%; left: 50%; transform: translateX(-50%);";
       case "space":
-        return "top: 5%; left: 50%; transform: translateX(-50%);";
+        return "top: 4%; left: 50%; transform: translateX(-50%);";
       case "nature":
-        return "top: 5%; left: 50%; transform: translateX(-50%);";
+        return "top: 4%; left: 50%; transform: translateX(-50%);";
       case "solid-color":
-        return "top: 5%; left: 50%; transform: translateX(-50%);";
+        return "top: 4%; left: 50%; transform: translateX(-50%);";
       default:
-        return "top: 5%; left: 50%; transform: translateX(-50%);";
+        return "top: 4%; left: 50%; transform: translateX(-50%);";
     }
   }
 
-  // Helper function to get title styles
+  // Helper function to get title styles (no longer used, but kept for reference)
   function getTitleStyles(theme: string) {
-    switch (theme) {
-      case "superhero":
-        return `
-          background-color: #dc2626;
-          color: white;
-          padding: 8px 24px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 24px;
-        `;
-      case "space":
-        return `
-          background-color: #4338ca;
-          color: white;
-          padding: 8px 24px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 24px;
-        `;
-      case "nature":
-        return `
-          background-color: #15803d;
-          color: white;
-          padding: 8px 24px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 24px;
-        `;
-      case "solid-color":
-        return `
-          background-color: #2563eb;
-          color: white;
-          padding: 8px 24px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 24px;
-        `;
-      default:
-        return "";
-    }
+    return "";
   }
 
   return (

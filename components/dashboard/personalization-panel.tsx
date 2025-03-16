@@ -99,8 +99,18 @@ export function PersonalizationPanel({
   // Load saved global settings on mount only
   useEffect(() => {
     const savedSettings = localStorage.getItem("timetableGlobalSettings");
-    if (savedSettings && !titleModified) {
-      setGlobalSettings(JSON.parse(savedSettings));
+    if (savedSettings) {
+      const parsedSettings = JSON.parse(savedSettings);
+      // Only update if title hasn't been modified
+      if (!titleModified) {
+        setGlobalSettings(parsedSettings);
+      } else {
+        // If title has been modified, keep the current title but update other settings
+        setGlobalSettings((prev) => ({
+          ...parsedSettings,
+          title: prev.title,
+        }));
+      }
     }
 
     // Load saved subject teachers

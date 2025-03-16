@@ -4,27 +4,32 @@ type ThemedBorderProps = {
   theme: string;
   title?: string;
   children: React.ReactNode;
+  fontFamily?: string;
 };
 
-export function ThemedBorder({ theme, title, children }: ThemedBorderProps) {
+export function ThemedBorder({
+  theme,
+  title,
+  children,
+  fontFamily = "Inter",
+}: ThemedBorderProps) {
   // If no theme or theme is "none", just render children
   if (!theme || theme === "none") {
     return <>{children}</>;
   }
 
   // Get theme styles based on theme
-  const { containerClass, titleClass, backgroundImage, titlePosition } =
-    getThemeStyles(theme);
+  const { containerClass, titlePosition } = getThemeStyles(theme);
 
   return (
     <div
       className={`relative w-full h-full ${containerClass}`}
       style={{ aspectRatio: "1.414/1" }}
     >
-      {backgroundImage && (
+      {theme && (
         <div className="absolute inset-0 pointer-events-none">
           <img
-            src={backgroundImage}
+            src={`/borders/${theme}-border.png`}
             alt={`${theme} theme`}
             className="w-full h-full object-contain"
           />
@@ -32,8 +37,14 @@ export function ThemedBorder({ theme, title, children }: ThemedBorderProps) {
       )}
 
       {title && (
-        <div className={`absolute z-10 ${titleClass}`} style={titlePosition}>
-          <h1 className="text-2xl font-bold">{title}</h1>
+        <div
+          className="absolute z-10 text-white text-center"
+          style={{
+            ...titlePosition,
+            fontFamily: fontFamily,
+          }}
+        >
+          <h1 className="text-3xl font-bold">{title}</h1>
         </div>
       )}
 
@@ -49,10 +60,8 @@ function getThemeStyles(theme: string) {
     case "superhero":
       return {
         containerClass: "rounded-lg overflow-hidden",
-        titleClass: "bg-red-600 text-white px-6 py-2 rounded-md",
-        backgroundImage: "/borders/superhero-border.png",
         titlePosition: {
-          top: "5%",
+          top: "4%",
           left: "50%",
           transform: "translateX(-50%)",
         },
@@ -60,10 +69,8 @@ function getThemeStyles(theme: string) {
     case "space":
       return {
         containerClass: "rounded-lg overflow-hidden",
-        titleClass: "bg-indigo-800 text-white px-6 py-2 rounded-md",
-        backgroundImage: "/borders/space-border.png",
         titlePosition: {
-          top: "5%",
+          top: "4%",
           left: "50%",
           transform: "translateX(-50%)",
         },
@@ -71,10 +78,8 @@ function getThemeStyles(theme: string) {
     case "nature":
       return {
         containerClass: "rounded-lg overflow-hidden",
-        titleClass: "bg-green-700 text-white px-6 py-2 rounded-md",
-        backgroundImage: "/borders/nature-border.png",
         titlePosition: {
-          top: "5%",
+          top: "4%",
           left: "50%",
           transform: "translateX(-50%)",
         },
@@ -82,10 +87,8 @@ function getThemeStyles(theme: string) {
     case "solid-color":
       return {
         containerClass: "rounded-lg overflow-hidden bg-blue-500/10",
-        titleClass: "bg-blue-600 text-white px-6 py-2 rounded-md",
-        backgroundImage: "",
         titlePosition: {
-          top: "5%",
+          top: "4%",
           left: "50%",
           transform: "translateX(-50%)",
         },
@@ -93,10 +96,8 @@ function getThemeStyles(theme: string) {
     default:
       return {
         containerClass: "",
-        titleClass: "",
-        backgroundImage: "",
         titlePosition: {
-          top: "5%",
+          top: "4%",
           left: "50%",
           transform: "translateX(-50%)",
         },

@@ -160,6 +160,7 @@ export function Timetable({
       <ThemedBorder
         theme={settings?.borderTheme || "none"}
         title={settings?.title || "Emploi du Temps"}
+        fontFamily={settings?.fontFamily || "Inter"}
       >
         <div
           className="border overflow-hidden mx-auto timetable-container shadow-lg bg-white"
