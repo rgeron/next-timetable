@@ -562,59 +562,43 @@ function ScheduleCell({
                 backgroundColor: entity.color ? `${entity.color}25` : "#f0f0f0",
               }}
             >
-              {/* Tag A - positioned at the top right of the left section */}
-              <div className="flex justify-end mb-1">
-                <div
-                  className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
-                  style={{
-                    backgroundColor: entity?.color || "#000",
-                    color: "#fff",
-                    border: `1px solid ${entity?.color || "#000"}`,
-                  }}
-                >
-                  A
-                </div>
-              </div>
-
-              {/* Week A content layout */}
-              <div className="flex flex-col h-full">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <div className="text-sm mr-1">{entity.icon}</div>
-                    <div className="font-medium text-xs">
-                      {entity.shortName}
-                    </div>
+              {/* Single line layout for Week A and B */}
+              <div className="flex items-center justify-between h-full">
+                {/* Week A content */}
+                <div className="flex items-center">
+                  <div className="text-sm mr-1">{entity.icon}</div>
+                  <div className="font-medium text-xs mr-1">
+                    {entity.shortName}
                   </div>
-                  {entry.room && (
-                    <div
-                      className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
-                      style={{
-                        backgroundColor: entity.color || "#000",
-                        color: "#fff",
-                      }}
-                    >
-                      <MapPin className="h-2 w-2 mr-1 opacity-70" />
-                      <span>{entry.room}</span>
-                    </div>
-                  )}
+                  <div
+                    className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
+                    style={{
+                      backgroundColor: entity?.color || "#000",
+                      color: "#fff",
+                      border: `1px solid ${entity?.color || "#000"}`,
+                    }}
+                  >
+                    A
+                  </div>
                 </div>
 
-                {entry.notes && entry.notes.includes("Professeur:") && (
+                {/* Room for Week A */}
+                {entry.room && (
                   <div
-                    className="text-[0.65rem] font-medium mt-0.5"
-                    style={{ color: entity.color }}
+                    className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5 ml-1"
+                    style={{
+                      backgroundColor: entity.color || "#000",
+                      color: "#fff",
+                    }}
                   >
-                    {entry.notes
-                      .split("\n")
-                      .find((line) => line.startsWith("Professeur:"))
-                      ?.replace("Professeur:", "")
-                      .trim()}
+                    <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                    <span>{entry.room}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Vertical divider - positioned absolutely in the center of the container */}
+            {/* Vertical divider */}
             <div
               className="absolute top-0 bottom-0 left-1/2 transform -translate-x-1/2 w-[2px] bg-black"
               style={{
@@ -633,42 +617,39 @@ function ScheduleCell({
                   : "#f0f0f0",
               }}
             >
-              {/* Tag B - positioned at the top right of the right section */}
-              <div className="flex justify-end mb-1">
-                <div
-                  className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
-                  style={{
-                    backgroundColor: entityB?.color || "#000",
-                    color: "#fff",
-                    border: `1px solid ${entityB?.color || "#000"}`,
-                  }}
-                >
-                  B
-                </div>
-              </div>
-
               {/* Week B content layout */}
-              <div className="flex flex-col h-full">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <div className="text-sm mr-1">{entityB.icon}</div>
-                    <div className="font-medium text-xs">
-                      {entityB.shortName}
-                    </div>
+              <div className="flex items-center justify-between h-full">
+                {/* Week B content */}
+                <div className="flex items-center">
+                  <div className="text-sm mr-1">{entityB.icon}</div>
+                  <div className="font-medium text-xs mr-1">
+                    {entityB.shortName}
                   </div>
-                  {entry.split.roomB && (
-                    <div
-                      className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
-                      style={{
-                        backgroundColor: entityB.color || "#000",
-                        color: "#fff",
-                      }}
-                    >
-                      <MapPin className="h-2 w-2 mr-1 opacity-70" />
-                      <span>{entry.split.roomB}</span>
-                    </div>
-                  )}
+                  <div
+                    className="text-[0.6rem] font-bold px-1 py-0.5 rounded-sm"
+                    style={{
+                      backgroundColor: entityB?.color || "#000",
+                      color: "#fff",
+                      border: `1px solid ${entityB?.color || "#000"}`,
+                    }}
+                  >
+                    B
+                  </div>
                 </div>
+
+                {/* Room for Week B */}
+                {entry.split.roomB && (
+                  <div
+                    className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5 ml-1"
+                    style={{
+                      backgroundColor: entityB.color || "#000",
+                      color: "#fff",
+                    }}
+                  >
+                    <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                    <span>{entry.split.roomB}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
