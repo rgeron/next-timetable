@@ -4,7 +4,6 @@ import { FileItPanel } from "@/components/file-it/file-it-panel";
 import { ContinueButton } from "@/components/navigation/continue-button";
 import { GoBackButton } from "@/components/navigation/go-back-button";
 import { TimelineEditor } from "@/components/timeline/timeline-editor";
-import { Button } from "@/components/ui/button";
 import {
   getNextStep,
   getPreviousStep,
@@ -12,11 +11,10 @@ import {
   isLastStep,
   Step,
 } from "@/lib/step-navigation";
-import { defaultTimeTableData, saveTimeTableData } from "@/lib/timetable";
-import { Clock, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { Clock } from "lucide-react";
 import { ImportFile } from "./import-file";
 import { PersonalizationPanel } from "./personalization-panel";
+import { WelcomePanel } from "./welcome-panel";
 
 // Type for the selected cell
 type SelectedCell = {
@@ -49,10 +47,10 @@ export function DashboardSidebar(props: {
   };
 
   return (
-    <div className="w-1/3 flex-shrink-0 border-r bg-sidebar flex flex-col h-full">
+    <div className="w-1/3 flex-shrink-0 border-r border-primary/10 bg-gradient-to-b from-sidebar to-sidebar/95 flex flex-col h-full shadow-md">
       <div className="flex h-full flex-col">
         {/* Content based on current step - now scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 pr-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-5 pr-3 custom-scrollbar">
           {renderSidebarContent(
             props.currentStep,
             props.selectedCell,
@@ -61,7 +59,7 @@ export function DashboardSidebar(props: {
         </div>
 
         {/* Navigation buttons at the bottom - fixed position */}
-        <div className="border-t p-4 flex justify-between gap-2 bg-sidebar">
+        <div className="border-t border-primary/10 p-4 flex justify-between gap-2 bg-sidebar/90 backdrop-blur-sm">
           <div className="flex-1">
             {!isFirstStep(props.currentStep) && (
               <GoBackButton onClick={handleGoBack} />
@@ -86,76 +84,19 @@ function renderSidebarContent(
   // Render different content based on the current step
   switch (step) {
     case "bienvenue":
-      const handleStartFresh = () => {
-        // Reset timetable data to default
-        saveTimeTableData(defaultTimeTableData);
-
-        // Reset global personalization features
-        localStorage.removeItem("timetableGlobalSettings");
-
-        // Reset subject teachers
-        localStorage.removeItem("subjectTeachers");
-
-        // Reset the DOM styles for immediate effect
-        document.documentElement.style.setProperty(
-          "--timetable-border-color",
-          "#e2e8f0"
-        );
-        document.documentElement.style.setProperty(
-          "--timetable-border-width",
-          "1px"
-        );
-
-        toast.success("Emploi du temps réinitialisé aux paramètres par défaut");
-
-        // Trigger a custom event to notify of timetable data change
-        window.dispatchEvent(new Event("timetableDataChanged"));
-      };
-
-      return (
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Bienvenue</h2>
-
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-primary/20">
-              <img
-                src="/images/papou.jpg"
-                alt="Papou"
-                className="object-cover w-full h-full"
-              />
-            </div>
-
-            <div className="text-center">
-              <p className="text-sm text-sidebar-foreground/80 italic">
-                Ce site est créé en l&apos;honneur de Papou, dont la sagesse et
-                la bienveillance continuent de nous inspirer.
-              </p>
-            </div>
-          </div>
-
-          <p className="text-sm text-sidebar-foreground/80">
-            Commencez à personnaliser votre emploi du temps. Suivez les étapes
-            pour créer votre planning idéal.
-          </p>
-
-          <Button
-            variant="outline"
-            onClick={handleStartFresh}
-            className="w-full mt-4"
-          >
-            <RefreshCw className="size-4 mr-2" />
-            Recommencer à zéro
-          </Button>
-        </div>
-      );
+      return <WelcomePanel />;
 
     case "importer-fichier":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Importer un fichier</h2>
-          <p className="text-sm text-sidebar-foreground/80">
-            Importez votre emploi du temps existant ou commencez de zéro.
-          </p>
+          <h2 className="text-xl font-semibold text-primary">
+            Importer un fichier
+          </h2>
+          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-4 rounded-lg border border-primary/10">
+            <p className="text-sm text-sidebar-foreground/80">
+              Importez votre emploi du temps existant ou commencez de zéro.
+            </p>
+          </div>
           <ImportFile />
         </div>
       );
@@ -163,10 +104,10 @@ function renderSidebarContent(
     case "horaires":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Horaires</h2>
+          <h2 className="text-xl font-semibold text-primary">Horaires</h2>
 
-          <div className="flex items-center text-sm font-medium mb-2">
-            <Clock className="w-4 h-4 mr-2" />
+          <div className="flex items-center text-sm font-medium mb-2 bg-primary/5 p-3 rounded-lg border border-primary/10">
+            <Clock className="w-4 h-4 mr-2 text-primary" />
             <span>Ajustement des créneaux</span>
           </div>
 
@@ -177,7 +118,14 @@ function renderSidebarContent(
     case "organisation":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Remplir les créneaux</h2>
+          <h2 className="text-xl font-semibold text-primary">
+            Remplir les créneaux
+          </h2>
+          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-3 rounded-lg border border-primary/10 mb-4">
+            <p className="text-sm text-sidebar-foreground/80">
+              Sélectionnez les matières et professeurs pour chaque créneau.
+            </p>
+          </div>
           <FileItPanel />
         </div>
       );
@@ -185,7 +133,13 @@ function renderSidebarContent(
     case "personnaliser":
       return (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Personnaliser</h2>
+          <h2 className="text-xl font-semibold text-primary">Personnaliser</h2>
+          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-3 rounded-lg border border-primary/10 mb-4">
+            <p className="text-sm text-sidebar-foreground/80">
+              Personnalisez l&apos;apparence et les détails de votre emploi du
+              temps.
+            </p>
+          </div>
           <PersonalizationPanel
             selectedCell={selectedCell}
             onCellDeselect={onCellDeselect}
