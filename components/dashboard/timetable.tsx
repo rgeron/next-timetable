@@ -674,40 +674,47 @@ function ScheduleCell({
           </div>
         ) : (
           <div className="flex flex-col h-full">
-            {/* Regular cell layout */}
-            <div className="flex flex-col h-full">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <div className="text-sm mr-1">{entity.icon}</div>
-                  <div className="font-medium text-xs">{entity.shortName}</div>
+            {/* Regular cell layout - Only show content if not continuing from previous cell */}
+            {!continuesFromPrev ? (
+              <div className="flex flex-col h-full">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="text-sm mr-1">{entity.icon}</div>
+                    <div className="font-medium text-xs">
+                      {entity.shortName}
+                    </div>
+                  </div>
+                  {entry.room && (
+                    <div
+                      className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
+                      style={{
+                        backgroundColor: entity.color || "#000",
+                        color: "#fff",
+                      }}
+                    >
+                      <MapPin className="h-2 w-2 mr-1 opacity-70" />
+                      <span>{entry.room}</span>
+                    </div>
+                  )}
                 </div>
-                {entry.room && (
+
+                {entry.notes && entry.notes.includes("Professeur:") && (
                   <div
-                    className="text-[0.65rem] font-medium inline-flex items-center rounded-full px-1 py-0.5"
-                    style={{
-                      backgroundColor: entity.color || "#000",
-                      color: "#fff",
-                    }}
+                    className="text-[0.65rem] font-medium mt-0.5"
+                    style={{ color: entity.color }}
                   >
-                    <MapPin className="h-2 w-2 mr-1 opacity-70" />
-                    <span>{entry.room}</span>
+                    {entry.notes
+                      .split("\n")
+                      .find((line) => line.startsWith("Professeur:"))
+                      ?.replace("Professeur:", "")
+                      .trim()}
                   </div>
                 )}
               </div>
-
-              {entry.notes && entry.notes.includes("Professeur:") && (
-                <div
-                  className="text-[0.65rem] font-medium mt-0.5"
-                  style={{ color: entity.color }}
-                >
-                  {entry.notes
-                    .split("\n")
-                    .find((line) => line.startsWith("Professeur:"))
-                    ?.replace("Professeur:", "")
-                    .trim()}
-                </div>
-              )}
-            </div>
+            ) : (
+              // Empty div for cells that continue from previous - keeps the background color
+              <div></div>
+            )}
           </div>
         )}
       </div>
