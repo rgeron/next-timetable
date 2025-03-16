@@ -87,8 +87,27 @@ function renderSidebarContent(
   switch (step) {
     case "bienvenue":
       const handleStartFresh = () => {
+        // Reset timetable data to default
         saveTimeTableData(defaultTimeTableData);
+
+        // Reset global personalization features
+        localStorage.removeItem("timetableGlobalSettings");
+
+        // Reset subject teachers
+        localStorage.removeItem("subjectTeachers");
+
+        // Reset the DOM styles for immediate effect
+        document.documentElement.style.setProperty(
+          "--timetable-border-color",
+          "#e2e8f0"
+        );
+        document.documentElement.style.setProperty(
+          "--timetable-border-width",
+          "1px"
+        );
+
         toast.success("Emploi du temps réinitialisé aux paramètres par défaut");
+
         // Trigger a custom event to notify of timetable data change
         window.dispatchEvent(new Event("timetableDataChanged"));
       };
