@@ -49,7 +49,7 @@ export function ThemedBorder({
       )}
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-[75%] h-[75%] max-w-[900px]">{children}</div>
+        <div className="w-[90%] h-[76%] max-w-[1000px] mt-2">{children}</div>
       </div>
     </div>
   );

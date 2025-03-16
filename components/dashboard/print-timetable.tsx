@@ -224,11 +224,12 @@ export function PrintControls({
             .themed-content {
               position: relative;
               z-index: 1;
-              width: 75%;
-              height: 75%;
+              width: 85%;
+              height: 80%;
               display: flex;
               align-items: center;
               justify-content: center;
+              margin-top: 16px;
             }
             
             /* Ensure the timetable fits within the border */
