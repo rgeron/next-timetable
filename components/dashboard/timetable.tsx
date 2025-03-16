@@ -679,7 +679,7 @@ function ScheduleCell({
                 </div>
 
                 {entry.notes && entry.notes.includes("Professeur:") && (
-                  <div className="text-[0.60rem] font-medium mt-0.2 flex flex-wrap gap-1">
+                  <div className="text-[0.60rem] font-medium mt-0.2 flex justify-end flex-wrap gap-1">
                     <span
                       className="inline-flex px-1.5 py-0.5 rounded-full text-white leading-none items-center"
                       style={{ backgroundColor: entity.color }}
