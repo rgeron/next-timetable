@@ -3,15 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimeTableData } from "@/lib/timetable";
-import {
-  AlertCircle,
-  Check,
-  FileText,
-  Image as ImageIcon,
-  Upload,
-} from "lucide-react";
+import { Check, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -88,13 +81,6 @@ export function ImportFile() {
     setUploadProgress(0);
     setExtractedPreview(null);
 
-    // For PDFs, show a special message
-    if (file.type.includes("application/pdf")) {
-      toast.info(
-        "Traitement du fichier PDF en cours. Cela peut prendre un moment..."
-      );
-    }
-
     // Simulate upload progress
     const progressInterval = setInterval(() => {
       setUploadProgress((prev) => {
@@ -120,20 +106,9 @@ export function ImportFile() {
       const result = await response.json();
 
       if (!response.ok) {
-        const errorMessage =
-          result.details || result.error || "Échec du traitement du fichier";
-
-        // Check if it's a PDF-specific error
-        if (
-          file.type.includes("application/pdf") &&
-          errorMessage.includes("PDF")
-        ) {
-          throw new Error(
-            "Le traitement du PDF a échoué. Veuillez essayer un autre PDF ou le convertir en image."
-          );
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(
+          result.details || result.error || "Échec du traitement du fichier"
+        );
       }
 
       // Save the parsed timetable data
@@ -150,47 +125,16 @@ export function ImportFile() {
             timeSlotsCount: data.timeSlots?.length || 0,
           });
 
-          if (data.days?.length === 0 && data.timeSlots?.length === 0) {
-            toast.warning(
-              "Peu de données ont pu être extraites. Vous devrez peut-être saisir certaines informations manuellement."
-            );
-          } else {
-            toast.success(
-              "Données de l'emploi du temps extraites avec succès !"
-            );
-          }
+          toast.success("Données extraites avec succès");
         } else {
-          toast.warning(
-            "Peu de données ont pu être extraites. La structure de l'emploi du temps n'a pas été reconnue."
-          );
+          toast.warning("Peu de données ont pu être extraites");
         }
       } else {
-        toast.warning("Aucune donnée d'emploi du temps n'a pu être extraite");
+        toast.warning("Aucune donnée n'a pu être extraite");
       }
     } catch (error) {
       console.error("Erreur lors du traitement du fichier:", error);
-
-      // Provide more helpful messages for common errors
-      const errorMessage = (error as Error).message;
-
-      if (errorMessage.includes("PDF")) {
-        toast.error("Échec du traitement du PDF", {
-          description:
-            "Essayez de convertir votre PDF en image (JPEG/PNG) et de le télécharger à nouveau.",
-        });
-      } else if (
-        errorMessage.includes("network") ||
-        errorMessage.includes("connection")
-      ) {
-        toast.error("Erreur réseau", {
-          description: "Vérifiez votre connexion Internet et réessayez.",
-        });
-      } else {
-        toast.error(`Erreur: ${errorMessage}`, {
-          description:
-            "Veuillez essayer un autre fichier ou vérifier votre connexion.",
-        });
-      }
+      toast.error(`Erreur: ${(error as Error).message}`);
     } finally {
       clearInterval(progressInterval);
       setIsUploading(false);
@@ -198,161 +142,86 @@ export function ImportFile() {
   };
 
   const handleConfirmImport = () => {
-    // This would need to be implemented to save the extracted data
-    toast.success("Données de l'emploi du temps importées avec succès !");
-
-    // Trigger event to refresh the timetable view
+    toast.success("Données importées avec succès");
     window.dispatchEvent(new Event("timetableDataChanged"));
   };
 
   return (
-    <div className="w-full space-y-4">
-      <Tabs defaultValue="upload" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="upload" className="w-full">
-            Importer un fichier
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="upload" className="pt-4">
-          {!extractedPreview && (
-            <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-                ${isDragging ? "border-primary bg-primary/10" : "border-border"}
-                ${isUploading ? "pointer-events-none opacity-70" : ""}
-              `}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={openFileSelector}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*,application/pdf"
-                onChange={handleFileChange}
-                disabled={isUploading}
-              />
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="rounded-full bg-primary/10 p-3">
-                  <Upload className="h-6 w-6 text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">
-                    {isUploading
-                      ? "Traitement du fichier..."
-                      : "Déposez votre fichier ici ou cliquez pour parcourir"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Téléchargez une image ou un PDF de votre emploi du temps
-                  </p>
-                </div>
-                {isUploading && (
-                  <div className="w-full space-y-2">
-                    <Progress value={uploadProgress} className="h-2" />
-                    <p className="text-xs text-muted-foreground">
-                      {uploadProgress < 100
-                        ? "Analyse de l'emploi du temps..."
-                        : "Finalisation..."}
-                    </p>
-                  </div>
-                )}
-              </div>
+    <div className="w-full">
+      {!extractedPreview && (
+        <div
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+            ${isDragging ? "border-primary bg-primary/10" : "border-border"}
+            ${isUploading ? "pointer-events-none opacity-70" : ""}
+          `}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={openFileSelector}
+        >
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*,application/pdf"
+            onChange={handleFileChange}
+            disabled={isUploading}
+          />
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className="rounded-full bg-primary/10 p-3">
+              <Upload className="h-6 w-6 text-primary" />
             </div>
-          )}
-
-          {extractedPreview && (
-            <Card className="p-4 border rounded-lg">
-              <div className="flex items-start mb-3">
-                <div className="rounded-full bg-green-100 p-1 mr-3">
-                  <Check className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium">
-                    Aperçu des données extraites
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Vérifiez les informations extraites avant l&apos;importation
-                  </p>
-                </div>
+            <p className="text-sm">
+              {isUploading
+                ? "Analyse en cours..."
+                : "Déposez votre emploi du temps (image ou PDF)"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Notre IA extraira automatiquement les informations
+            </p>
+            {isUploading && (
+              <div className="w-full space-y-2">
+                <Progress value={uploadProgress} className="h-2" />
               </div>
+            )}
+          </div>
+        </div>
+      )}
 
-              <div className="space-y-2 mb-4">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-muted-foreground">École :</div>
-                  <div className="font-medium">{extractedPreview.school}</div>
+      {extractedPreview && (
+        <Card className="p-4 border rounded-lg">
+          <div className="flex items-start mb-3">
+            <div className="rounded-full bg-green-100 p-1 mr-3">
+              <Check className="h-4 w-4 text-green-600" />
+            </div>
+            <p className="text-sm font-medium">Données extraites avec succès</p>
+          </div>
 
-                  <div className="text-muted-foreground">Classe :</div>
-                  <div className="font-medium">{extractedPreview.class}</div>
+          <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+            <div className="text-muted-foreground">École :</div>
+            <div>{extractedPreview.school}</div>
+            <div className="text-muted-foreground">Classe :</div>
+            <div>{extractedPreview.class}</div>
+            <div className="text-muted-foreground">Jours :</div>
+            <div>{extractedPreview.daysCount}</div>
+            <div className="text-muted-foreground">Créneaux :</div>
+            <div>{extractedPreview.timeSlotsCount}</div>
+          </div>
 
-                  <div className="text-muted-foreground">Année scolaire :</div>
-                  <div className="font-medium">{extractedPreview.year}</div>
-
-                  <div className="text-muted-foreground">Jours trouvés :</div>
-                  <div className="font-medium">
-                    {extractedPreview.daysCount}
-                  </div>
-
-                  <div className="text-muted-foreground">
-                    Créneaux horaires :
-                  </div>
-                  <div className="font-medium">
-                    {extractedPreview.timeSlotsCount}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setExtractedPreview(null)}
-                >
-                  Essayer un autre fichier
-                </Button>
-                <Button size="sm" onClick={handleConfirmImport}>
-                  Importer l&apos;emploi du temps
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {!extractedPreview && (
-            <>
-              <div className="flex flex-col gap-2">
-                <p className="text-xs text-muted-foreground">
-                  Formats supportés :
-                </p>
-                <div className="flex gap-3">
-                  <Card className="flex items-center gap-2 p-2 text-xs">
-                    <ImageIcon className="h-4 w-4" />
-                    <span>Images (JPEG, PNG)</span>
-                  </Card>
-                  <Card className="flex items-center gap-2 p-2 text-xs">
-                    <FileText className="h-4 w-4" />
-                    <span>PDF</span>
-                  </Card>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
-                <div className="flex items-start">
-                  <AlertCircle className="mr-2 h-4 w-4 mt-0.5" />
-                  <div>
-                    <p>
-                      La qualité de l&apos;extraction des données dépend de la
-                      clarté de l&apos;image. Pour de meilleurs résultats,
-                      assurez-vous que l&apos;emploi du temps est clairement
-                      visible avec un bon éclairage.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExtractedPreview(null)}
+            >
+              Annuler
+            </Button>
+            <Button size="sm" onClick={handleConfirmImport}>
+              Importer
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

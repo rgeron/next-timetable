@@ -92,11 +92,6 @@ function renderSidebarContent(
           <h2 className="text-xl font-semibold text-primary">
             Importer un fichier
           </h2>
-          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-4 rounded-lg border border-primary/10">
-            <p className="text-sm text-sidebar-foreground/80">
-              Importez votre emploi du temps existant ou commencez de zéro.
-            </p>
-          </div>
           <ImportFile />
         </div>
       );
@@ -121,11 +116,6 @@ function renderSidebarContent(
           <h2 className="text-xl font-semibold text-primary">
             Remplir les créneaux
           </h2>
-          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-3 rounded-lg border border-primary/10 mb-4">
-            <p className="text-sm text-sidebar-foreground/80">
-              Sélectionnez les matières et professeurs pour chaque créneau.
-            </p>
-          </div>
           <FileItPanel />
         </div>
       );
@@ -134,12 +124,7 @@ function renderSidebarContent(
       return (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-primary">Personnaliser</h2>
-          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-3 rounded-lg border border-primary/10 mb-4">
-            <p className="text-sm text-sidebar-foreground/80">
-              Personnalisez l&apos;apparence et les détails de votre emploi du
-              temps.
-            </p>
-          </div>
+
           <PersonalizationPanel
             selectedCell={selectedCell}
             onCellDeselect={onCellDeselect}
